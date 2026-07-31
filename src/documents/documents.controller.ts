@@ -5,13 +5,15 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
   Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Express } from 'express';
+import type { Express, Response } from 'express';
+import { resolve } from 'path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
@@ -59,6 +61,24 @@ export class DocumentsController {
     @Param('animalId', ParseIntPipe) animalId: number,
   ) {
     return this.documentsService.listForAnimal(user.id, animalId);
+  }
+
+  @Get('documents/:id/file')
+  async download(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const document = await this.documentsService.getFileForDownload(
+      user.id,
+      id,
+    );
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(document.fileName)}"`,
+    );
+    res.sendFile(resolve(document.filePath));
   }
 
   @Delete('documents/:id')
