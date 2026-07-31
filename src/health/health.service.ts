@@ -123,13 +123,14 @@ export class HealthService {
   ) {
     await this.animalsService.findAndAssertAccess(userId, animalId);
     const entry = await this.getOwnedEntry(animalId, entryId);
-    const nextReminderDate = input.recurrenceMonths
-      ? this.resolveNextReminderDate({ ...entry, ...input })
-      : input.nextReminderDate;
-    return this.healthEntriesRepository.update(entryId, {
-      ...input,
-      nextReminderDate,
-    });
+    const { recurrenceMonths, ...updateInput } = input;
+    if (recurrenceMonths) {
+      updateInput.nextReminderDate = this.resolveNextReminderDate({
+        ...entry,
+        ...input,
+      });
+    }
+    return this.healthEntriesRepository.update(entryId, updateInput);
   }
 
   async deleteHealthEntry(userId: number, animalId: number, entryId: number) {

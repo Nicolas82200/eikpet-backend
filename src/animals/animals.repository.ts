@@ -67,7 +67,8 @@ export class AnimalsRepository {
       `SELECT ${SELECT_FIELDS} FROM animals WHERE id = ?`,
       [id],
     );
-    return (rows[0] as Animal) ?? null;
+    const row = rows[0];
+    return row ? mapRowToAnimal(row) : null;
   }
 
   async findByHousehold(householdId: number): Promise<Animal[]> {
@@ -75,7 +76,7 @@ export class AnimalsRepository {
       `SELECT ${SELECT_FIELDS} FROM animals WHERE household_id = ? ORDER BY name`,
       [householdId],
     );
-    return rows as Animal[];
+    return rows.map(mapRowToAnimal);
   }
 
   async update(
@@ -116,4 +117,8 @@ export class AnimalsRepository {
   async delete(id: number): Promise<void> {
     await this.pool.query('DELETE FROM animals WHERE id = ?', [id]);
   }
+}
+
+function mapRowToAnimal(row: RowDataPacket): Animal {
+  return { ...row, sterilized: Boolean(row.sterilized) } as Animal;
 }

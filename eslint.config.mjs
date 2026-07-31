@@ -32,4 +32,14 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    // Les reponses supertest (response.body) sont typees `any` par nature (pas de client HTTP type).
+    // On desactive les regles no-unsafe-* uniquement pour les tests e2e plutot que de tout typer a la main.
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
 );
