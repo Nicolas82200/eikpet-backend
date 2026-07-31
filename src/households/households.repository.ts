@@ -64,6 +64,24 @@ export class HouseholdsRepository {
     return rows.length > 0;
   }
 
+  async getRole(
+    householdId: number,
+    userId: number,
+  ): Promise<HouseholdRole | null> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT role FROM household_members WHERE household_id = ? AND user_id = ? LIMIT 1',
+      [householdId, userId],
+    );
+    return (rows[0]?.role as HouseholdRole) ?? null;
+  }
+
+  async rename(householdId: number, name: string): Promise<void> {
+    await this.pool.query('UPDATE households SET name = ? WHERE id = ?', [
+      name,
+      householdId,
+    ]);
+  }
+
   async listForUser(
     userId: number,
   ): Promise<(Household & { role: HouseholdRole })[]> {

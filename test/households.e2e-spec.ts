@@ -97,4 +97,78 @@ describe('Households isolation (e2e)', () => {
     expect(members.body).toHaveLength(1);
     expect(members.body[0].role).toBe('owner');
   });
+
+  it('permet au proprietaire de renommer le foyer, refuse a un simple membre', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'rename-owner',
+      'Nom initial',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('rename-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .send({ name: 'Tentative membre' })
+      .expect(403);
+
+    const renamed = await request(app.getHttpServer())
+      .patch(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Nouveau nom' })
+      .expect(200);
+
+    expect(renamed.body.name).toBe('Nouveau nom');
+  });
+
+  it("reserve la regeneration du code d'invitation au proprietaire", async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'regen-owner',
+      'Foyer regen',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('regen-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/invite-code/regenerate`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/invite-code/regenerate`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(201);
+  });
 });

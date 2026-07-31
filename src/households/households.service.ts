@@ -38,13 +38,19 @@ export class HouseholdsService {
   }
 
   async regenerateInviteCode(userId: number, householdId: number) {
-    await this.assertMember(userId, householdId);
+    await this.assertOwner(userId, householdId);
     const inviteCode = generateInviteCode();
     await this.householdsRepository.regenerateInviteCode(
       householdId,
       inviteCode,
     );
     return { inviteCode };
+  }
+
+  async rename(userId: number, householdId: number, name: string) {
+    await this.assertOwner(userId, householdId);
+    await this.householdsRepository.rename(householdId, name);
+    return this.householdsRepository.findById(householdId);
   }
 
   async assertMember(userId: number, householdId: number): Promise<void> {
@@ -54,6 +60,18 @@ export class HouseholdsService {
     );
     if (!isMember) {
       throw new ForbiddenException("Vous n'appartenez pas a ce foyer");
+    }
+  }
+
+  private async assertOwner(
+    userId: number,
+    householdId: number,
+  ): Promise<void> {
+    const role = await this.householdsRepository.getRole(householdId, userId);
+    if (role !== 'owner') {
+      throw new ForbiddenException(
+        'Seul le proprietaire du foyer peut faire cette action',
+      );
     }
   }
 }

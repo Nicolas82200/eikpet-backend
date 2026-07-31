@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
 import { HouseholdsService } from './households.service';
 import { CreateHouseholdDto } from './dto/create-household.dto';
+import { RenameHouseholdDto } from './dto/rename-household.dto';
 
 @Controller('households')
 @UseGuards(JwtAuthGuard)
@@ -45,6 +47,15 @@ export class HouseholdsController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.householdsService.listMembers(user.id, id);
+  }
+
+  @Patch(':id')
+  rename(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RenameHouseholdDto,
+  ) {
+    return this.householdsService.rename(user.id, id, dto.name);
   }
 
   @Post(':id/invite-code/regenerate')
