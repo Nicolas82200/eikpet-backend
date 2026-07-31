@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -51,6 +52,33 @@ export class HouseholdsService {
     await this.assertOwner(userId, householdId);
     await this.householdsRepository.rename(householdId, name);
     return this.householdsRepository.findById(householdId);
+  }
+
+  async removeMember(
+    userId: number,
+    householdId: number,
+    targetUserId: number,
+  ): Promise<void> {
+    await this.assertOwner(userId, householdId);
+    if (targetUserId === userId) {
+      throw new BadRequestException(
+        'Le proprietaire ne peut pas se retirer lui-meme du foyer',
+      );
+    }
+    await this.householdsRepository.removeMember(householdId, targetUserId);
+  }
+
+  async leave(userId: number, householdId: number): Promise<void> {
+    const role = await this.householdsRepository.getRole(householdId, userId);
+    if (!role) {
+      throw new ForbiddenException("Vous n'appartenez pas a ce foyer");
+    }
+    if (role === 'owner') {
+      throw new BadRequestException(
+        'Le proprietaire ne peut pas quitter le foyer. Supprimez le foyer ou transferez la propriete.',
+      );
+    }
+    await this.householdsRepository.removeMember(householdId, userId);
   }
 
   async assertMember(userId: number, householdId: number): Promise<void> {

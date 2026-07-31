@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -64,5 +67,24 @@ export class HouseholdsController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.householdsService.regenerateInviteCode(user.id, id);
+  }
+
+  @Delete(':id/members/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeMember(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) targetUserId: number,
+  ) {
+    return this.householdsService.removeMember(user.id, id, targetUserId);
+  }
+
+  @Post(':id/leave')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  leave(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.householdsService.leave(user.id, id);
   }
 }

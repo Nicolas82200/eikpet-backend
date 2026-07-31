@@ -115,4 +115,11 @@ export class HouseholdsRepository {
       [inviteCode, householdId],
     );
   }
+
+  async removeMember(householdId: number, userId: number): Promise<void> {
+    await this.pool.query(
+      'DELETE FROM household_members WHERE household_id = ? AND user_id = ?',
+      [householdId, userId],
+    );
+  }
 }
