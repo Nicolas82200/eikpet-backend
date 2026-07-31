@@ -19,6 +19,7 @@ export interface HealthEntry {
   type: HealthEntryType;
   customTypeLabel: string | null;
   scheduledDate: string;
+  scheduledTime: string | null;
   status: HealthEntryStatus;
   report: string | null;
   price: number | null;
@@ -29,6 +30,7 @@ export interface HealthEntryInput {
   type: HealthEntryType;
   customTypeLabel?: string | null;
   scheduledDate: string;
+  scheduledTime?: string | null;
   status?: HealthEntryStatus;
   report?: string | null;
   price?: number | null;
@@ -37,7 +39,8 @@ export interface HealthEntryInput {
 
 const SELECT_FIELDS = `
   id, animal_id AS animalId, type, custom_type_label AS customTypeLabel,
-  scheduled_date AS scheduledDate, status, report, price, next_reminder_date AS nextReminderDate
+  scheduled_date AS scheduledDate, scheduled_time AS scheduledTime, status, report, price,
+  next_reminder_date AS nextReminderDate
 `;
 
 @Injectable()
@@ -66,13 +69,14 @@ export class HealthEntriesRepository {
   ): Promise<HealthEntry> {
     const [result] = await this.pool.query<ResultSetHeader>(
       `INSERT INTO health_entries
-        (animal_id, type, custom_type_label, scheduled_date, status, report, price, next_reminder_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (animal_id, type, custom_type_label, scheduled_date, scheduled_time, status, report, price, next_reminder_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         animalId,
         input.type,
         input.customTypeLabel ?? null,
         input.scheduledDate,
+        input.scheduledTime ?? null,
         input.status ?? 'prevu',
         input.report ?? null,
         input.price ?? null,
@@ -90,6 +94,7 @@ export class HealthEntriesRepository {
       type: 'type',
       customTypeLabel: 'custom_type_label',
       scheduledDate: 'scheduled_date',
+      scheduledTime: 'scheduled_time',
       status: 'status',
       report: 'report',
       price: 'price',
@@ -125,7 +130,7 @@ export class HealthEntriesRepository {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT
          he.id, he.animal_id AS animalId, he.type, he.custom_type_label AS customTypeLabel,
-         he.scheduled_date AS scheduledDate, he.status, he.report, he.price,
+         he.scheduled_date AS scheduledDate, he.scheduled_time AS scheduledTime, he.status, he.report, he.price,
          he.next_reminder_date AS nextReminderDate, a.household_id AS householdId, a.name AS animalName
        FROM health_entries he
        JOIN animals a ON a.id = he.animal_id
@@ -143,7 +148,7 @@ export class HealthEntriesRepository {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT
          he.id, he.animal_id AS animalId, he.type, he.custom_type_label AS customTypeLabel,
-         he.scheduled_date AS scheduledDate, he.status, he.report, he.price,
+         he.scheduled_date AS scheduledDate, he.scheduled_time AS scheduledTime, he.status, he.report, he.price,
          he.next_reminder_date AS nextReminderDate, a.name AS animalName
        FROM health_entries he
        JOIN animals a ON a.id = he.animal_id

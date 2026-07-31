@@ -10,6 +10,8 @@ export interface Treatment {
   frequency: string | null;
   startDate: string | null;
   endDate: string | null;
+  /** Heures de prise separees par des virgules, ex: "08:00,13:00,20:00" (rappels locaux cote mobile). */
+  reminderTimes: string | null;
   notes: string | null;
 }
 
@@ -20,7 +22,7 @@ export type TreatmentInput = Partial<
 
 const SELECT_FIELDS = `
   id, animal_id AS animalId, name, dosage, frequency,
-  start_date AS startDate, end_date AS endDate, notes
+  start_date AS startDate, end_date AS endDate, reminder_times AS reminderTimes, notes
 `;
 
 @Injectable()
@@ -37,8 +39,8 @@ export class TreatmentsRepository {
 
   async create(animalId: number, input: TreatmentInput): Promise<Treatment> {
     const [result] = await this.pool.query<ResultSetHeader>(
-      `INSERT INTO animal_treatments (animal_id, name, dosage, frequency, start_date, end_date, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO animal_treatments (animal_id, name, dosage, frequency, start_date, end_date, reminder_times, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         animalId,
         input.name,
@@ -46,6 +48,7 @@ export class TreatmentsRepository {
         input.frequency ?? null,
         input.startDate ?? null,
         input.endDate ?? null,
+        input.reminderTimes ?? null,
         input.notes ?? null,
       ],
     );
