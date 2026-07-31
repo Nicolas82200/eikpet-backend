@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { unlink } from 'fs/promises';
 import {
   AnimalsRepository,
   type Animal,
@@ -44,6 +45,25 @@ export class AnimalsService {
   async delete(userId: number, animalId: number): Promise<void> {
     await this.findAndAssertAccess(userId, animalId);
     await this.animalsRepository.delete(animalId);
+  }
+
+  async setPhoto(userId: number, animalId: number, filePath: string) {
+    const animal = await this.findAndAssertAccess(userId, animalId);
+    if (animal.photoUrl) {
+      await unlink(animal.photoUrl).catch(() => undefined);
+    }
+    const updated = await this.animalsRepository.update(animalId, {
+      photoUrl: filePath,
+    });
+    return withAge(updated!);
+  }
+
+  async getPhotoPath(userId: number, animalId: number): Promise<string> {
+    const animal = await this.findAndAssertAccess(userId, animalId);
+    if (!animal.photoUrl) {
+      throw new NotFoundException("Cet animal n'a pas de photo");
+    }
+    return animal.photoUrl;
   }
 
   /** Utilise par les autres modules (sante, documents) pour verifier l'acces avant toute operation liee a un animal. */

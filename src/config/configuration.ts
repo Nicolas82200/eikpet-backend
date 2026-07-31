@@ -16,6 +16,9 @@ export interface AppConfig {
   documents: {
     storagePath: string;
   };
+  photos: {
+    storagePath: string;
+  };
   fcm: {
     projectId: string;
     clientEmail: string;
@@ -40,6 +43,9 @@ export default (): AppConfig => ({
   },
   documents: {
     storagePath: process.env.DOCUMENTS_STORAGE_PATH ?? './storage/documents',
+  },
+  photos: {
+    storagePath: process.env.PHOTOS_STORAGE_PATH ?? './storage/photos',
   },
   fcm: {
     projectId: process.env.FCM_PROJECT_ID ?? '',

@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { join } from 'path';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+
+const SAMPLE_PHOTO = join(__dirname, 'fixtures', 'sample.txt');
 
 async function registerAndGetHousehold(
   app: INestApplication<App>,
@@ -100,6 +103,37 @@ describe('Animals (e2e)', () => {
 
     await request(app.getHttpServer())
       .delete(`/animals/${created.body.id}`)
+      .set('Authorization', `Bearer ${stranger.accessToken}`)
+      .expect(403);
+  });
+
+  it("uploade et telecharge une photo, refuse un membre d'un autre foyer", async () => {
+    const owner = await registerAndGetHousehold(app, 'animal-photo-owner');
+    const stranger = await registerAndGetHousehold(
+      app,
+      'animal-photo-stranger',
+    );
+
+    const created = await request(app.getHttpServer())
+      .post(`/households/${owner.householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Photogenique', species: 'Chat' })
+      .expect(201);
+
+    const uploaded = await request(app.getHttpServer())
+      .post(`/animals/${created.body.id}/photo`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .attach('file', SAMPLE_PHOTO)
+      .expect(201);
+    expect(uploaded.body.photoUrl).toBeTruthy();
+
+    await request(app.getHttpServer())
+      .get(`/animals/${created.body.id}/photo`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/animals/${created.body.id}/photo`)
       .set('Authorization', `Bearer ${stranger.accessToken}`)
       .expect(403);
   });
