@@ -6,6 +6,11 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class RemindersService {
+  /**
+   * scheduledDate est une date-only (ex: "2026-01-01"), parsee par `new Date()` en UTC minuit.
+   * On doit rester en UTC tout du long : melanger UTC (parsing) et heure locale
+   * (getMonth/setMonth) decale la date d'un jour, voire d'un mois, pres des bornes.
+   */
   calculateNextReminderDate(
     scheduledDate: Date,
     recurrenceMonths?: number | null,
@@ -14,7 +19,7 @@ export class RemindersService {
       return null;
     }
     const next = new Date(scheduledDate);
-    next.setMonth(next.getMonth() + recurrenceMonths);
+    next.setUTCMonth(next.getUTCMonth() + recurrenceMonths);
     return next;
   }
 
