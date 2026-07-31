@@ -5,15 +5,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomInt } from 'crypto';
 import { UsersRepository } from './repositories/users.repository';
 import { RefreshTokensRepository } from './repositories/refresh-tokens.repository';
+import { PasswordResetTokensRepository } from './repositories/password-reset-tokens.repository';
 import { TokenService } from './token.service';
 import { HouseholdsRepository } from '../households/households.repository';
 import { generateInviteCode } from '../households/invite-code.util';
+import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 const BCRYPT_ROUNDS = 12;
+const PASSWORD_RESET_CODE_TTL_MS = 15 * 60 * 1000;
 
 export interface AuthTokens {
   accessToken: string;
@@ -25,8 +29,10 @@ export class AuthService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly refreshTokensRepository: RefreshTokensRepository,
+    private readonly passwordResetTokensRepository: PasswordResetTokensRepository,
     private readonly householdsRepository: HouseholdsRepository,
     private readonly tokenService: TokenService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthTokens> {
@@ -131,6 +137,72 @@ export class AuthService {
 
   async logoutAll(userId: number): Promise<void> {
     await this.refreshTokensRepository.revokeAllForUser(userId);
+  }
+
+  /** Renvoie toujours le meme resultat que l'email existe ou non, pour eviter l'enumeration de comptes. */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.usersRepository.findByEmail(email);
+    if (!user) {
+      return;
+    }
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    const codeHash = this.hashCode(code);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL_MS);
+    await this.passwordResetTokensRepository.create(
+      user.id,
+      codeHash,
+      expiresAt,
+    );
+    await this.emailService.sendPasswordResetCode(user.email, code);
+  }
+
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.usersRepository.findByEmail(email);
+    if (!user) {
+      throw new BadRequestException('Code invalide ou expire');
+    }
+    const codeHash = this.hashCode(code);
+    const token =
+      await this.passwordResetTokensRepository.findValidByUserAndCodeHash(
+        user.id,
+        codeHash,
+      );
+    if (!token) {
+      throw new BadRequestException('Code invalide ou expire');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.usersRepository.updatePasswordHash(user.id, passwordHash);
+    await this.passwordResetTokensRepository.markUsed(token.id);
+    await this.refreshTokensRepository.revokeAllForUser(user.id);
+  }
+
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Utilisateur introuvable');
+    }
+    const passwordMatches = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash,
+    );
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.usersRepository.updatePasswordHash(userId, passwordHash);
+    await this.refreshTokensRepository.revokeAllForUser(userId);
+  }
+
+  private hashCode(code: string): string {
+    return createHash('sha256').update(code).digest('hex');
   }
 
   private async issueTokens(

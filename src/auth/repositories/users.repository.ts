@@ -44,4 +44,14 @@ export class UsersRepository {
     );
     return { id: result.insertId, email, passwordHash, firstName, lastName };
   }
+
+  async updatePasswordHash(
+    userId: number,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [
+      passwordHash,
+      userId,
+    ]);
+  }
 }
