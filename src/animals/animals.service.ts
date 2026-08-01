@@ -11,6 +11,7 @@ import {
 } from './animals.repository';
 import { HouseholdsRepository } from '../households/households.repository';
 import { DocumentsRepository } from '../documents/documents.repository';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import { calculateAge } from './age.util';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class AnimalsService {
     private readonly animalsRepository: AnimalsRepository,
     private readonly householdsRepository: HouseholdsRepository,
     private readonly documentsRepository: DocumentsRepository,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   async listForHousehold(userId: number, householdId: number) {
@@ -29,6 +31,7 @@ export class AnimalsService {
 
   async create(userId: number, householdId: number, input: AnimalInput) {
     await this.assertMember(userId, householdId);
+    await this.planLimitsService.assertCanAddAnimal(householdId);
     const animal = await this.animalsRepository.create(householdId, input);
     return withAge(animal);
   }

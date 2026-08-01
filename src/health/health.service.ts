@@ -17,6 +17,7 @@ import {
   type HealthEntryInput,
 } from './repositories/health-entries.repository';
 import { RemindersService } from './reminders.service';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 
 @Injectable()
 export class HealthService {
@@ -27,6 +28,7 @@ export class HealthService {
     private readonly surgicalHistoryRepository: SurgicalHistoryRepository,
     private readonly healthEntriesRepository: HealthEntriesRepository,
     private readonly remindersService: RemindersService,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   // --- Fiche medicale ---
@@ -98,8 +100,17 @@ export class HealthService {
   // --- Carnet de sante ---
 
   async listHealthEntries(userId: number, animalId: number) {
-    await this.animalsService.findAndAssertAccess(userId, animalId);
-    return this.healthEntriesRepository.findByAnimal(animalId);
+    const animal = await this.animalsService.findAndAssertAccess(
+      userId,
+      animalId,
+    );
+    const floorDate = await this.planLimitsService.getHealthHistoryFloorDate(
+      animal.householdId,
+    );
+    return this.healthEntriesRepository.findByAnimal(
+      animalId,
+      floorDate ? floorDate.toISOString().slice(0, 10) : null,
+    );
   }
 
   async createHealthEntry(

@@ -7,9 +7,10 @@ import { RefreshTokensRepository } from './repositories/refresh-tokens.repositor
 import { PasswordResetTokensRepository } from './repositories/password-reset-tokens.repository';
 import { HouseholdsModule } from '../households/households.module';
 import { EmailModule } from '../email/email.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TokenModule, HouseholdsModule, EmailModule],
+  imports: [TokenModule, HouseholdsModule, EmailModule, SubscriptionsModule],
   controllers: [AuthController],
   providers: [
     AuthService,

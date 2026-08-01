@@ -9,6 +9,7 @@ import { HouseholdsRepository } from './households.repository';
 import { generateInviteCode } from './invite-code.util';
 import { AnimalsRepository } from '../animals/animals.repository';
 import { DocumentsRepository } from '../documents/documents.repository';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 
 @Injectable()
 export class HouseholdsService {
@@ -16,9 +17,11 @@ export class HouseholdsService {
     private readonly householdsRepository: HouseholdsRepository,
     private readonly animalsRepository: AnimalsRepository,
     private readonly documentsRepository: DocumentsRepository,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   async createForUser(userId: number, name: string) {
+    await this.planLimitsService.assertCanJoinOrCreateHousehold(userId);
     const household = await this.householdsRepository.create(
       name,
       generateInviteCode(),

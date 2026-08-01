@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HealthEntriesRepository } from '../health/repositories/health-entries.repository';
-import { RemindersService } from '../health/reminders.service';
 import { ReminderNotificationsRepository } from './reminder-notifications.repository';
 import { PushTokensRepository } from './push-tokens.repository';
 import { FcmService } from './fcm.service';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 
 const MS_PER_DAY = 86_400_000;
 
@@ -14,23 +14,25 @@ export class ReminderSchedulerService {
 
   constructor(
     private readonly healthEntriesRepository: HealthEntriesRepository,
-    private readonly remindersService: RemindersService,
     private readonly reminderNotificationsRepository: ReminderNotificationsRepository,
     private readonly pushTokensRepository: PushTokensRepository,
     private readonly fcmService: FcmService,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
   async sendDueReminders(): Promise<void> {
     const entries =
       await this.healthEntriesRepository.findAllWithUpcomingReminders();
-    const offsets = this.remindersService.getNotificationOffsets();
     const today = startOfDay(new Date());
 
     for (const entry of entries) {
       const reminderDate = startOfDay(new Date(entry.nextReminderDate!));
       const daysUntil = Math.round(
         (reminderDate.getTime() - today.getTime()) / MS_PER_DAY,
+      );
+      const offsets = await this.planLimitsService.getNotificationOffsets(
+        entry.householdId,
       );
       if (!offsets.includes(daysUntil)) {
         continue;

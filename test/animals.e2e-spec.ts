@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { join } from 'path';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 const SAMPLE_PHOTO = join(__dirname, 'fixtures', 'sample.txt');
 
@@ -166,6 +167,7 @@ describe('Animals (e2e)', () => {
       app,
       'animal-delete-cleanup',
     );
+    await activatePremium(app, accessToken);
 
     const created = await request(app.getHttpServer())
       .post(`/households/${householdId}/animals`)

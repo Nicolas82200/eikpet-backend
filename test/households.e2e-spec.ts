@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 async function registerWithHousehold(
   app: INestApplication<App>,
@@ -318,5 +319,65 @@ describe('Households isolation (e2e)', () => {
       .get(`/households/${householdId}`)
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .expect(403);
+  });
+
+  it('plan gratuit : limite a 1 foyer, debloque par un abonnement premium', async () => {
+    const user = await registerWithHousehold(app, 'plan-household', 'Foyer 1');
+
+    // 2e foyer refuse en gratuit (deja proprietaire/membre d'un foyer)
+    await request(app.getHttpServer())
+      .post('/households')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .send({ name: 'Foyer 2' })
+      .expect(403);
+
+    await activatePremium(app, user.accessToken);
+
+    // Debloque une fois premium
+    await request(app.getHttpServer())
+      .post('/households')
+      .set('Authorization', `Bearer ${user.accessToken}`)
+      .send({ name: 'Foyer 2' })
+      .expect(201);
+  });
+
+  it('plan gratuit : limite a 2 animaux par foyer, debloque par un abonnement premium', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'plan-animals',
+      'Foyer animaux',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Rex', species: 'Chien' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Milo', species: 'Chat' })
+      .expect(201);
+
+    // 3e animal refuse en gratuit
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Nera', species: 'Chat' })
+      .expect(403);
+
+    await activatePremium(app, owner.accessToken);
+
+    // Debloque une fois premium
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Nera', species: 'Chat' })
+      .expect(201);
   });
 });

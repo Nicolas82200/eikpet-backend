@@ -47,7 +47,23 @@ const SELECT_FIELDS = `
 export class HealthEntriesRepository {
   constructor(@Inject(DATABASE_POOL) private readonly pool: Pool) {}
 
-  async findByAnimal(animalId: number): Promise<HealthEntry[]> {
+  /**
+   * sinceDate limite le carnet aux entrees planifiees a partir de cette date (plan gratuit :
+   * 12 derniers mois, cf. PlanLimitsService.getHealthHistoryFloorDate). null = pas de filtre.
+   */
+  async findByAnimal(
+    animalId: number,
+    sinceDate?: string | null,
+  ): Promise<HealthEntry[]> {
+    if (sinceDate) {
+      const [rows] = await this.pool.query<RowDataPacket[]>(
+        `SELECT ${SELECT_FIELDS} FROM health_entries
+         WHERE animal_id = ? AND scheduled_date >= ?
+         ORDER BY scheduled_date DESC`,
+        [animalId, sinceDate],
+      );
+      return rows as HealthEntry[];
+    }
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT ${SELECT_FIELDS} FROM health_entries WHERE animal_id = ? ORDER BY scheduled_date DESC`,
       [animalId],
