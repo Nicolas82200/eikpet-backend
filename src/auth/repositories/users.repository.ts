@@ -54,4 +54,8 @@ export class UsersRepository {
       userId,
     ]);
   }
+
+  async delete(userId: number): Promise<void> {
+    await this.pool.query('DELETE FROM users WHERE id = ?', [userId]);
+  }
 }

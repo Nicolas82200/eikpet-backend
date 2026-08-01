@@ -11,6 +11,7 @@ import { RefreshTokensRepository } from './repositories/refresh-tokens.repositor
 import { PasswordResetTokensRepository } from './repositories/password-reset-tokens.repository';
 import { TokenService } from './token.service';
 import { HouseholdsRepository } from '../households/households.repository';
+import { HouseholdsService } from '../households/households.service';
 import { generateInviteCode } from '../households/invite-code.util';
 import { EmailService } from '../email/email.service';
 import { RegisterDto } from './dto/register.dto';
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly refreshTokensRepository: RefreshTokensRepository,
     private readonly passwordResetTokensRepository: PasswordResetTokensRepository,
     private readonly householdsRepository: HouseholdsRepository,
+    private readonly householdsService: HouseholdsService,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
   ) {}
@@ -199,6 +201,29 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.usersRepository.updatePasswordHash(userId, passwordHash);
     await this.refreshTokensRepository.revokeAllForUser(userId);
+  }
+
+  async deleteAccount(userId: number, password: string): Promise<void> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Utilisateur introuvable');
+    }
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Mot de passe incorrect');
+    }
+
+    // Les foyers dont l'utilisateur est simple membre sont quittes automatiquement
+    // (cascade SQL sur household_members.user_id). Les foyers dont il est proprietaire
+    // sont supprimes entierement (memes consequences que la suppression manuelle d'un
+    // foyer : plus personne, y compris les autres membres, n'y a acces ensuite).
+    const households = await this.householdsRepository.listForUser(userId);
+    const ownedHouseholds = households.filter((h) => h.role === 'owner');
+    for (const household of ownedHouseholds) {
+      await this.householdsService.deleteHousehold(userId, household.id);
+    }
+
+    await this.usersRepository.delete(userId);
   }
 
   private hashCode(code: string): string {
