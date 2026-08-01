@@ -263,4 +263,60 @@ describe('Households isolation (e2e)', () => {
       .expect(200);
     expect(membersAfter.body).toHaveLength(1);
   });
+
+  it('permet au proprietaire de supprimer le foyer, refuse a un simple membre', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'delete-owner',
+      'Foyer a supprimer',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('delete-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Rex', species: 'Chien' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(204);
+
+    // Le foyer n'apparait plus dans la liste, meme pour l'ancien proprietaire
+    const householdsAfter = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    expect(
+      householdsAfter.body.find((h: { id: number }) => h.id === householdId),
+    ).toBeUndefined();
+
+    // Plus personne (meme l'ex-proprietaire) ne peut plus y acceder
+    await request(app.getHttpServer())
+      .get(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(403);
+  });
 });

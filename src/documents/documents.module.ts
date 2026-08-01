@@ -9,7 +9,7 @@ import { HouseholdsModule } from '../households/households.module';
 import { AnimalsModule } from '../animals/animals.module';
 import { DocumentsController } from './documents.controller';
 import { DocumentsService } from './documents.service';
-import { DocumentsRepository } from './documents.repository';
+import { DocumentsRepositoryModule } from './documents-repository.module';
 import type { AppConfig } from '../config/configuration';
 
 @Module({
@@ -17,6 +17,7 @@ import type { AppConfig } from '../config/configuration';
     TokenModule,
     HouseholdsModule,
     AnimalsModule,
+    DocumentsRepositoryModule,
     MulterModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AppConfig, true>) => ({
@@ -32,6 +33,6 @@ import type { AppConfig } from '../config/configuration';
     }),
   ],
   controllers: [DocumentsController],
-  providers: [DocumentsService, DocumentsRepository],
+  providers: [DocumentsService],
 })
 export class DocumentsModule {}

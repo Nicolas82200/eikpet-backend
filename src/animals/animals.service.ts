@@ -10,6 +10,7 @@ import {
   type AnimalInput,
 } from './animals.repository';
 import { HouseholdsRepository } from '../households/households.repository';
+import { DocumentsRepository } from '../documents/documents.repository';
 import { calculateAge } from './age.util';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class AnimalsService {
   constructor(
     private readonly animalsRepository: AnimalsRepository,
     private readonly householdsRepository: HouseholdsRepository,
+    private readonly documentsRepository: DocumentsRepository,
   ) {}
 
   async listForHousehold(userId: number, householdId: number) {
@@ -43,7 +45,17 @@ export class AnimalsService {
   }
 
   async delete(userId: number, animalId: number): Promise<void> {
-    await this.findAndAssertAccess(userId, animalId);
+    const animal = await this.findAndAssertAccess(userId, animalId);
+    // Les lignes (documents, entrees de sante...) sont supprimees par cascade SQL,
+    // mais les fichiers sur disque ne le sont jamais automatiquement : on les nettoie ici,
+    // avant la suppression, pour ne pas laisser de fichiers orphelins.
+    if (animal.photoUrl) {
+      await unlink(animal.photoUrl).catch(() => undefined);
+    }
+    const documents = await this.documentsRepository.findByAnimal(animalId);
+    await Promise.all(
+      documents.map((doc) => unlink(doc.filePath).catch(() => undefined)),
+    );
     await this.animalsRepository.delete(animalId);
   }
 

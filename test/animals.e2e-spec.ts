@@ -160,4 +160,49 @@ describe('Animals (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(404);
   });
+
+  it('supprime la photo et les documents lies quand on supprime un animal', async () => {
+    const { accessToken, householdId } = await registerAndGetHousehold(
+      app,
+      'animal-delete-cleanup',
+    );
+
+    const created = await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'AvecFichiers', species: 'Chat' })
+      .expect(201);
+    const animalId = created.body.id;
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/photo`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .attach('file', SAMPLE_PHOTO)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/documents`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .field('category', 'analyse')
+      .field('animalId', String(animalId))
+      .attach('file', SAMPLE_PHOTO)
+      .expect(201);
+
+    const docsBefore = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/documents`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(docsBefore.body).toHaveLength(1);
+
+    await request(app.getHttpServer())
+      .delete(`/animals/${animalId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    // L'animal (et donc ses documents, par cascade SQL) a bien disparu
+    await request(app.getHttpServer())
+      .get(`/animals/${animalId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
+  });
 });

@@ -87,4 +87,13 @@ export class HouseholdsController {
   ) {
     return this.householdsService.leave(user.id, id);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteHousehold(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.householdsService.deleteHousehold(user.id, id);
+  }
 }

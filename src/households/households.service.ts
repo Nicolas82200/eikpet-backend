@@ -4,12 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { unlink } from 'fs/promises';
 import { HouseholdsRepository } from './households.repository';
 import { generateInviteCode } from './invite-code.util';
+import { AnimalsRepository } from '../animals/animals.repository';
+import { DocumentsRepository } from '../documents/documents.repository';
 
 @Injectable()
 export class HouseholdsService {
-  constructor(private readonly householdsRepository: HouseholdsRepository) {}
+  constructor(
+    private readonly householdsRepository: HouseholdsRepository,
+    private readonly animalsRepository: AnimalsRepository,
+    private readonly documentsRepository: DocumentsRepository,
+  ) {}
 
   async createForUser(userId: number, name: string) {
     const household = await this.householdsRepository.create(
@@ -66,6 +73,23 @@ export class HouseholdsService {
       );
     }
     await this.householdsRepository.removeMember(householdId, targetUserId);
+  }
+
+  async deleteHousehold(userId: number, householdId: number): Promise<void> {
+    await this.assertOwner(userId, householdId);
+    // Les lignes (membres, animaux, entrees de sante, documents...) sont supprimees par
+    // cascade SQL, mais les fichiers sur disque ne le sont jamais automatiquement : on les
+    // nettoie ici, avant la suppression, pour ne pas laisser de fichiers orphelins.
+    const animals = await this.animalsRepository.findByHousehold(householdId);
+    const documents =
+      await this.documentsRepository.findByHousehold(householdId);
+    await Promise.all([
+      ...animals
+        .filter((a) => a.photoUrl)
+        .map((a) => unlink(a.photoUrl!).catch(() => undefined)),
+      ...documents.map((doc) => unlink(doc.filePath).catch(() => undefined)),
+    ]);
+    await this.householdsRepository.delete(householdId);
   }
 
   async leave(userId: number, householdId: number): Promise<void> {

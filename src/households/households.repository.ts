@@ -122,4 +122,8 @@ export class HouseholdsRepository {
       [householdId, userId],
     );
   }
+
+  async delete(householdId: number): Promise<void> {
+    await this.pool.query('DELETE FROM households WHERE id = ?', [householdId]);
+  }
 }
