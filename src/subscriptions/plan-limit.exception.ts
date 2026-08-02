@@ -1,7 +1,11 @@
 import { ForbiddenException } from '@nestjs/common';
 
 export type PlanLimitCode =
-  'PLAN_LIMIT_HOUSEHOLD' | 'PLAN_LIMIT_ANIMAL' | 'PLAN_LIMIT_DOCUMENT';
+  | 'PLAN_LIMIT_HOUSEHOLD'
+  | 'PLAN_LIMIT_ANIMAL'
+  | 'PLAN_LIMIT_DOCUMENT'
+  | 'PLAN_LIMIT_PENSION'
+  | 'PLAN_LIMIT_BUDGET';
 
 /**
  * Levee quand une action est bloquee par les limites du plan gratuit (cf. cahier des

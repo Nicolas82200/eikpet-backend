@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import { PlanLimitException } from './plan-limit.exception';
+import { PlanLimitException, type PlanLimitCode } from './plan-limit.exception';
 import { HouseholdsRepository } from '../households/households.repository';
 import { AnimalsRepository } from '../animals/animals.repository';
 
@@ -54,13 +54,31 @@ export class PlanLimitsService {
   }
 
   async assertCanUploadDocument(householdId: number): Promise<void> {
+    await this.assertPremiumFeature(
+      householdId,
+      'PLAN_LIMIT_DOCUMENT',
+      "La gestion documentaire n'est disponible qu'avec l'abonnement.",
+    );
+  }
+
+  async assertCanUsePension(householdId: number): Promise<void> {
+    await this.assertPremiumFeature(
+      householdId,
+      'PLAN_LIMIT_PENSION',
+      "Le suivi de pension n'est disponible qu'avec l'abonnement.",
+    );
+  }
+
+  /** Reserve une fonctionnalite entierement au plan premium (aucun acces en gratuit). */
+  private async assertPremiumFeature(
+    householdId: number,
+    code: PlanLimitCode,
+    message: string,
+  ): Promise<void> {
     const isPremium =
       await this.subscriptionsService.isHouseholdPremium(householdId);
     if (!isPremium) {
-      throw new PlanLimitException(
-        'PLAN_LIMIT_DOCUMENT',
-        "La gestion documentaire n'est disponible qu'avec l'abonnement.",
-      );
+      throw new PlanLimitException(code, message);
     }
   }
 
