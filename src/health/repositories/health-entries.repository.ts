@@ -169,6 +169,44 @@ export class HealthEntriesRepository {
     return rows as HealthEntry[];
   }
 
+  /** 3.9 Budget : total des prix du carnet de sante pour un animal. */
+  async sumPriceForAnimal(animalId: number): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT COALESCE(SUM(price), 0) AS total FROM health_entries WHERE animal_id = ?',
+      [animalId],
+    );
+    return Number((rows[0] as { total: number }).total);
+  }
+
+  /** 3.9 Budget : total des prix du carnet de sante, tous animaux d'un foyer. */
+  async sumPriceForHousehold(householdId: number): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT COALESCE(SUM(he.price), 0) AS total
+       FROM health_entries he
+       JOIN animals a ON a.id = he.animal_id
+       WHERE a.household_id = ?`,
+      [householdId],
+    );
+    return Number((rows[0] as { total: number }).total);
+  }
+
+  /** 3.9 Budget : repartition par type d'entree pour un animal (vaccin, rdv_veto...). */
+  async sumPriceByTypeForAnimal(
+    animalId: number,
+  ): Promise<{ type: HealthEntryType; total: number }[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT type, COALESCE(SUM(price), 0) AS total
+       FROM health_entries
+       WHERE animal_id = ? AND price IS NOT NULL
+       GROUP BY type`,
+      [animalId],
+    );
+    return rows.map((r) => ({
+      type: r.type as HealthEntryType,
+      total: Number(r.total),
+    }));
+  }
+
   async findUpcomingForHousehold(
     householdId: number,
   ): Promise<(HealthEntry & { animalName: string })[]> {
