@@ -15,6 +15,7 @@ import { CalendarModule } from './calendar/calendar.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ProvidersModule } from './providers/providers.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     NotificationsModule,
     DocumentsModule,
     SubscriptionsModule,
+    ProvidersModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
