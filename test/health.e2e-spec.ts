@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 async function registerWithAnimal(app: INestApplication<App>, prefix: string) {
   const auth = await request(app.getHttpServer())
@@ -162,5 +163,35 @@ describe('Health (e2e)', () => {
 
     expect(calendar.body).toHaveLength(1);
     expect(calendar.body[0].animalName).toBe('Patient');
+  });
+
+  it('bloque les comptes-rendus consolides en gratuit, les autorise en premium', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(app, 'reports');
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/health-entries`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        type: 'rdv_veto',
+        scheduledDate: '2026-01-15',
+        status: 'fait',
+        report: 'RAS, controle de routine.',
+      })
+      .expect(201);
+
+    const blocked = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/reports`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(403);
+    expect(blocked.body.errorCode).toBe('PLAN_LIMIT_REPORTS');
+
+    await activatePremium(app, accessToken);
+
+    const reports = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/reports`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(reports.body).toHaveLength(1);
+    expect(reports.body[0].report).toBe('RAS, controle de routine.');
   });
 });

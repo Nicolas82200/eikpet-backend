@@ -113,6 +113,17 @@ export class HealthService {
     );
   }
 
+  // --- Comptes-rendus (3.7) : historique consolide, reserve a l'abonnement ---
+
+  async listReports(userId: number, animalId: number) {
+    const animal = await this.animalsService.findAndAssertAccess(
+      userId,
+      animalId,
+    );
+    await this.planLimitsService.assertCanUseReports(animal.householdId);
+    return this.healthEntriesRepository.findWithReportByAnimal(animalId);
+  }
+
   async createHealthEntry(
     userId: number,
     animalId: number,

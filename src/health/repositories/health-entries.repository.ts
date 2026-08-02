@@ -158,6 +158,17 @@ export class HealthEntriesRepository {
     })[];
   }
 
+  /** 3.7 Comptes-rendus : historique consolide des entrees ayant un compte-rendu texte renseigne. */
+  async findWithReportByAnimal(animalId: number): Promise<HealthEntry[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT ${SELECT_FIELDS} FROM health_entries
+       WHERE animal_id = ? AND report IS NOT NULL AND report != ''
+       ORDER BY scheduled_date DESC`,
+      [animalId],
+    );
+    return rows as HealthEntry[];
+  }
+
   async findUpcomingForHousehold(
     householdId: number,
   ): Promise<(HealthEntry & { animalName: string })[]> {
