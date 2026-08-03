@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AnimalsService } from '../animals/animals.service';
 import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import {
   RidingSessionsRepository,
   type RidingSessionInput,
 } from './riding-sessions.repository';
+
+/** 3.8 : les seances sont reservees aux chevaux (et poneys), cf. cahier des charges. */
+const EQUINE_SPECIES = ['cheval', 'poney', 'pony'];
 
 @Injectable()
 export class RidingSessionsService {
@@ -24,6 +31,11 @@ export class RidingSessionsService {
       userId,
       animalId,
     );
+    if (!EQUINE_SPECIES.includes(animal.species.trim().toLowerCase())) {
+      throw new BadRequestException(
+        'Les seances sont reservees aux chevaux et poneys',
+      );
+    }
     await this.planLimitsService.assertCanUseRidingSessions(animal.householdId);
     return this.ridingSessionsRepository.create(animalId, input);
   }
