@@ -8,7 +8,8 @@ export type PlanLimitCode =
   | 'PLAN_LIMIT_REPORTS'
   | 'PLAN_LIMIT_BUDGET'
   | 'PLAN_LIMIT_RIDING_SESSIONS'
-  | 'PLAN_LIMIT_PROVIDER_MAP';
+  | 'PLAN_LIMIT_PROVIDER_MAP'
+  | 'PLAN_LIMIT_WEIGHT_CURVE';
 
 /**
  * Levee quand une action est bloquee par les limites du plan gratuit (cf. cahier des

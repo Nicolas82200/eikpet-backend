@@ -168,6 +168,20 @@ describe('PlanLimitsService', () => {
     });
   });
 
+  describe('assertCanUseWeightCurve', () => {
+    it('bloque la courbe de poids sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUseWeightCurve(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise la courbe de poids sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(service.assertCanUseWeightCurve(1)).resolves.toBeUndefined();
+    });
+  });
+
   describe('getHealthHistoryFloorDate', () => {
     it('renvoie null (pas de filtre) pour un foyer premium', async () => {
       const service = makeService({ isHouseholdPremium: true });
