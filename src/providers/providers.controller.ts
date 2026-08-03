@@ -29,6 +29,14 @@ export class ProvidersController {
     return this.providersService.listForHousehold(user.id, householdId);
   }
 
+  @Get('households/:householdId/providers/map')
+  listForMap(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('householdId', ParseIntPipe) householdId: number,
+  ) {
+    return this.providersService.listForMap(user.id, householdId);
+  }
+
   @Post('households/:householdId/providers')
   create(
     @CurrentUser() user: AuthenticatedUser,
