@@ -4,6 +4,7 @@ import { AnimalsRepository } from '../animals/animals.repository';
 import { HouseholdsRepository } from '../households/households.repository';
 import { HealthEntriesRepository } from '../health/repositories/health-entries.repository';
 import { BoardingsRepository } from '../pension/boardings.repository';
+import { RidingSessionsRepository } from '../seances/riding-sessions.repository';
 import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 
 /**
@@ -18,6 +19,7 @@ export class BudgetService {
     private readonly householdsRepository: HouseholdsRepository,
     private readonly healthEntriesRepository: HealthEntriesRepository,
     private readonly boardingsRepository: BoardingsRepository,
+    private readonly ridingSessionsRepository: RidingSessionsRepository,
     private readonly planLimitsService: PlanLimitsService,
   ) {}
 
@@ -28,17 +30,20 @@ export class BudgetService {
     );
     await this.planLimitsService.assertCanUseBudget(animal.householdId);
 
-    const [healthTotal, boardingTotal, byType] = await Promise.all([
-      this.healthEntriesRepository.sumPriceForAnimal(animalId),
-      this.boardingsRepository.sumPriceForAnimal(animalId),
-      this.healthEntriesRepository.sumPriceByTypeForAnimal(animalId),
-    ]);
+    const [healthTotal, boardingTotal, ridingSessionsTotal, byType] =
+      await Promise.all([
+        this.healthEntriesRepository.sumPriceForAnimal(animalId),
+        this.boardingsRepository.sumPriceForAnimal(animalId),
+        this.ridingSessionsRepository.sumPriceForAnimal(animalId),
+        this.healthEntriesRepository.sumPriceByTypeForAnimal(animalId),
+      ]);
 
     return {
       animalId,
       healthTotal,
       boardingTotal,
-      total: healthTotal + boardingTotal,
+      ridingSessionsTotal,
+      total: healthTotal + boardingTotal + ridingSessionsTotal,
       byCategory: byType,
     };
   }
@@ -56,14 +61,16 @@ export class BudgetService {
     const animals = await this.animalsRepository.findByHousehold(householdId);
     const byAnimal = await Promise.all(
       animals.map(async (animal) => {
-        const [healthTotal, boardingTotal] = await Promise.all([
-          this.healthEntriesRepository.sumPriceForAnimal(animal.id),
-          this.boardingsRepository.sumPriceForAnimal(animal.id),
-        ]);
+        const [healthTotal, boardingTotal, ridingSessionsTotal] =
+          await Promise.all([
+            this.healthEntriesRepository.sumPriceForAnimal(animal.id),
+            this.boardingsRepository.sumPriceForAnimal(animal.id),
+            this.ridingSessionsRepository.sumPriceForAnimal(animal.id),
+          ]);
         return {
           animalId: animal.id,
           animalName: animal.name,
-          total: healthTotal + boardingTotal,
+          total: healthTotal + boardingTotal + ridingSessionsTotal,
         };
       }),
     );
