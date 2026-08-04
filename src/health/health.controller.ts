@@ -107,6 +107,14 @@ export class HealthController {
 
   // --- Carnet de sante ---
 
+  @Get('vaccination-schedule')
+  getVaccinationSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+  ) {
+    return this.healthService.getVaccinationSchedule(user.id, animalId);
+  }
+
   @Get('health-entries')
   listHealthEntries(
     @CurrentUser() user: AuthenticatedUser,

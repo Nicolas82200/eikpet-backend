@@ -99,6 +99,17 @@ export class HealthService {
 
   // --- Carnet de sante ---
 
+  async getVaccinationSchedule(userId: number, animalId: number) {
+    const animal = await this.animalsService.findAndAssertAccess(
+      userId,
+      animalId,
+    );
+    return this.remindersService.getSuggestedVaccinationSchedule(
+      animal.species,
+      animal.birthDate,
+    );
+  }
+
   async listHealthEntries(userId: number, animalId: number) {
     const animal = await this.animalsService.findAndAssertAccess(
       userId,
