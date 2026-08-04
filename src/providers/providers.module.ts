@@ -26,5 +26,6 @@ import { AnimalProvidersRepository } from './animal-providers.repository';
     AnimalProvidersService,
     AnimalProvidersRepository,
   ],
+  exports: [AnimalProvidersRepository],
 })
 export class ProvidersModule {}

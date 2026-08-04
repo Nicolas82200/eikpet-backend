@@ -24,6 +24,16 @@ import { UpdateHealthEntryDto } from './dto/update-health-entry.dto';
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
+  // --- Fiche d'urgence ---
+
+  @Get('emergency-sheet')
+  getEmergencySheet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+  ) {
+    return this.healthService.getEmergencySheet(user.id, animalId);
+  }
+
   // --- Fiche medicale ---
 
   @Get('medical-profile')

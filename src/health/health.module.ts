@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TokenModule } from '../auth/token.module';
 import { AnimalsModule } from '../animals/animals.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { ProvidersModule } from '../providers/providers.module';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 import { RemindersService } from './reminders.service';
@@ -11,7 +12,7 @@ import { SurgicalHistoryRepository } from './repositories/surgical-history.repos
 import { HealthEntriesRepository } from './repositories/health-entries.repository';
 
 @Module({
-  imports: [TokenModule, AnimalsModule, SubscriptionsModule],
+  imports: [TokenModule, AnimalsModule, SubscriptionsModule, ProvidersModule],
   controllers: [HealthController],
   providers: [
     HealthService,
