@@ -18,6 +18,7 @@ import { CreateTreatmentDto } from './dto/create-treatment.dto';
 import { CreateSurgicalHistoryDto } from './dto/create-surgical-history.dto';
 import { CreateHealthEntryDto } from './dto/create-health-entry.dto';
 import { UpdateHealthEntryDto } from './dto/update-health-entry.dto';
+import { CreateShareLinkDto } from './dto/create-share-link.dto';
 
 @Controller('animals/:animalId')
 @UseGuards(JwtAuthGuard)
@@ -32,6 +33,40 @@ export class HealthController {
     @Param('animalId', ParseIntPipe) animalId: number,
   ) {
     return this.healthService.getEmergencySheet(user.id, animalId);
+  }
+
+  @Post('emergency-sheet/share-links')
+  createEmergencyShareLink(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+    @Body() dto: CreateShareLinkDto,
+  ) {
+    return this.healthService.createEmergencyShareLink(
+      user.id,
+      animalId,
+      dto.expiresInHours,
+    );
+  }
+
+  @Get('emergency-sheet/share-links')
+  listEmergencyShareLinks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+  ) {
+    return this.healthService.listEmergencyShareLinks(user.id, animalId);
+  }
+
+  @Delete('emergency-sheet/share-links/:linkId')
+  revokeEmergencyShareLink(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+    @Param('linkId', ParseIntPipe) linkId: number,
+  ) {
+    return this.healthService.revokeEmergencyShareLink(
+      user.id,
+      animalId,
+      linkId,
+    );
   }
 
   // --- Fiche medicale ---
