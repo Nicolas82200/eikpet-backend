@@ -19,6 +19,7 @@ import { CreateSurgicalHistoryDto } from './dto/create-surgical-history.dto';
 import { CreateHealthEntryDto } from './dto/create-health-entry.dto';
 import { UpdateHealthEntryDto } from './dto/update-health-entry.dto';
 import { CreateShareLinkDto } from './dto/create-share-link.dto';
+import { CreateBehavioralNoteDto } from './dto/create-behavioral-note.dto';
 
 @Controller('animals/:animalId')
 @UseGuards(JwtAuthGuard)
@@ -138,6 +139,32 @@ export class HealthController {
     @Param('entryId', ParseIntPipe) entryId: number,
   ) {
     return this.healthService.deleteSurgicalHistory(user.id, animalId, entryId);
+  }
+
+  @Get('behavioral-notes')
+  listBehavioralNotes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+  ) {
+    return this.healthService.listBehavioralNotes(user.id, animalId);
+  }
+
+  @Post('behavioral-notes')
+  createBehavioralNote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+    @Body() dto: CreateBehavioralNoteDto,
+  ) {
+    return this.healthService.createBehavioralNote(user.id, animalId, dto.note);
+  }
+
+  @Delete('behavioral-notes/:noteId')
+  deleteBehavioralNote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+    @Param('noteId', ParseIntPipe) noteId: number,
+  ) {
+    return this.healthService.deleteBehavioralNote(user.id, animalId, noteId);
   }
 
   // --- Comptes-rendus ---

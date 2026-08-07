@@ -23,6 +23,7 @@ import { RemindersService } from './reminders.service';
 import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import { AnimalProvidersRepository } from '../providers/animal-providers.repository';
 import { EmergencyShareRepository } from './repositories/emergency-share.repository';
+import { BehavioralNotesRepository } from './repositories/behavioral-notes.repository';
 
 const DEFAULT_SHARE_LINK_HOURS = 72;
 
@@ -39,7 +40,29 @@ export class HealthService {
     private readonly animalProvidersRepository: AnimalProvidersRepository,
     private readonly emergencyShareRepository: EmergencyShareRepository,
     private readonly animalsRepository: AnimalsRepository,
+    private readonly behavioralNotesRepository: BehavioralNotesRepository,
   ) {}
+
+  // --- Notes comportementales (liste, remplace l'ancien champ texte unique) ---
+
+  async listBehavioralNotes(userId: number, animalId: number) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    return this.behavioralNotesRepository.findByAnimal(animalId);
+  }
+
+  async createBehavioralNote(userId: number, animalId: number, note: string) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    return this.behavioralNotesRepository.create(animalId, note);
+  }
+
+  async deleteBehavioralNote(userId: number, animalId: number, noteId: number) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    const note = await this.behavioralNotesRepository.findById(noteId);
+    if (!note || note.animalId !== animalId) {
+      throw new NotFoundException('Note comportementale introuvable');
+    }
+    await this.behavioralNotesRepository.delete(noteId);
+  }
 
   // --- Fiche d'urgence (3.2 bonus) : reste gratuite en toutes circonstances, cf. cahier des charges. ---
 
@@ -107,12 +130,14 @@ export class HealthService {
         ? calculateAge(new Date(rawAnimal.birthDate))
         : null,
     };
-    const [medicalProfile, treatments, providers] = await Promise.all([
-      this.medicalProfileRepository.findByAnimalId(animalId),
-      this.treatmentsRepository.findByAnimal(animalId),
-      this.animalProvidersRepository.findByAnimal(animalId),
-    ]);
-    return { animal, medicalProfile, treatments, providers };
+    const [medicalProfile, treatments, providers, behavioralNotes] =
+      await Promise.all([
+        this.medicalProfileRepository.findByAnimalId(animalId),
+        this.treatmentsRepository.findByAnimal(animalId),
+        this.animalProvidersRepository.findByAnimal(animalId),
+        this.behavioralNotesRepository.findByAnimal(animalId),
+      ]);
+    return { animal, medicalProfile, treatments, providers, behavioralNotes };
   }
 
   // --- Fiche medicale ---
