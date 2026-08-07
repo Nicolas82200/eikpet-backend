@@ -195,6 +195,58 @@ describe('Health (e2e)', () => {
     expect(listAfter.body).toHaveLength(0);
   });
 
+  it('gere les antecedents chirurgicaux avec une date partielle (annee obligatoire)', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'surgical-history',
+    );
+
+    const created = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/surgical-history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ procedureName: 'Sterilisation', performedYear: 2022 })
+      .expect(201);
+    expect(created.body.performedYear).toBe(2022);
+    expect(created.body.performedMonth).toBeNull();
+    expect(created.body.performedDay).toBeNull();
+
+    const withFullDate = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/surgical-history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        procedureName: 'Extraction dentaire',
+        performedYear: 2023,
+        performedMonth: 6,
+        performedDay: 15,
+      })
+      .expect(201);
+    expect(withFullDate.body.performedMonth).toBe(6);
+    expect(withFullDate.body.performedDay).toBe(15);
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/surgical-history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ procedureName: 'Sans annee' })
+      .expect(400);
+
+    const list = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/surgical-history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(list.body).toHaveLength(2);
+
+    await request(app.getHttpServer())
+      .delete(`/animals/${animalId}/surgical-history/${created.body.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const listAfter = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/surgical-history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(listAfter.body).toHaveLength(1);
+  });
+
   it('gere les notes comportementales (liste, ajout, suppression)', async () => {
     const { accessToken, animalId } = await registerWithAnimal(
       app,

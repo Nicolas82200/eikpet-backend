@@ -6,17 +6,24 @@ export interface SurgicalHistoryEntry {
   id: number;
   animalId: number;
   procedureName: string;
-  performedOn: string | null;
+  /** Annee obligatoire ; mois et jour optionnels (date d'operation parfois imprecise). */
+  performedYear: number;
+  performedMonth: number | null;
+  performedDay: number | null;
   notes: string | null;
 }
 
 export type SurgicalHistoryInput = Partial<
-  Omit<SurgicalHistoryEntry, 'id' | 'animalId' | 'procedureName'>
+  Omit<
+    SurgicalHistoryEntry,
+    'id' | 'animalId' | 'procedureName' | 'performedYear'
+  >
 > &
-  Pick<SurgicalHistoryEntry, 'procedureName'>;
+  Pick<SurgicalHistoryEntry, 'procedureName' | 'performedYear'>;
 
 const SELECT_FIELDS = `
-  id, animal_id AS animalId, procedure_name AS procedureName, performed_on AS performedOn, notes
+  id, animal_id AS animalId, procedure_name AS procedureName,
+  performed_year AS performedYear, performed_month AS performedMonth, performed_day AS performedDay, notes
 `;
 
 @Injectable()
@@ -25,7 +32,8 @@ export class SurgicalHistoryRepository {
 
   async findByAnimal(animalId: number): Promise<SurgicalHistoryEntry[]> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT ${SELECT_FIELDS} FROM animal_surgical_history WHERE animal_id = ? ORDER BY performed_on DESC`,
+      `SELECT ${SELECT_FIELDS} FROM animal_surgical_history WHERE animal_id = ?
+       ORDER BY performed_year DESC, performed_month DESC, performed_day DESC`,
       [animalId],
     );
     return rows as SurgicalHistoryEntry[];
@@ -36,12 +44,14 @@ export class SurgicalHistoryRepository {
     input: SurgicalHistoryInput,
   ): Promise<SurgicalHistoryEntry> {
     const [result] = await this.pool.query<ResultSetHeader>(
-      `INSERT INTO animal_surgical_history (animal_id, procedure_name, performed_on, notes)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO animal_surgical_history (animal_id, procedure_name, performed_year, performed_month, performed_day, notes)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         animalId,
         input.procedureName,
-        input.performedOn ?? null,
+        input.performedYear,
+        input.performedMonth ?? null,
+        input.performedDay ?? null,
         input.notes ?? null,
       ],
     );
