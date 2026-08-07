@@ -136,4 +136,37 @@ describe('Seances chevaux (e2e)', () => {
     expect(budget.body.ridingSessionsTotal).toBe(60);
     expect(budget.body.total).toBe(60);
   });
+
+  it('refuse une seance pour un animal qui n est pas un cheval', async () => {
+    const auth = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('seance-not-horse'),
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+        householdName: 'Foyer seance non cheval',
+      })
+      .expect(201);
+    const accessToken = auth.body.accessToken as string;
+    await activatePremium(app, accessToken);
+
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+
+    const animal = await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Rex', species: 'Chien' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animal.body.id}/riding-sessions`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ type: 'dressage', scheduledDate: '2026-09-01' })
+      .expect(400);
+  });
 });
