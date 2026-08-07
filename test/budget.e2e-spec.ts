@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { createTestApp, uniqueEmail } from './utils/test-app';
 import { activatePremium } from './utils/subscriptions';
+import { countElapsedOccurrences } from '../src/pension/boarding-schedule.util';
 
 describe('Budget (e2e)', () => {
   let app: INestApplication<App>;
@@ -79,6 +80,63 @@ describe('Budget (e2e)', () => {
     expect(householdBudget.body.byAnimal).toEqual([
       { animalId, animalName: 'Rex', total: 145 },
     ]);
+  });
+
+  it('calcule le total d une pension recurrente a partir du nombre d echeances echues', async () => {
+    const auth = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('budget-recurrent'),
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+        householdName: 'Foyer budget recurrent',
+      })
+      .expect(201);
+    const accessToken = auth.body.accessToken as string;
+
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+
+    await activatePremium(app, accessToken);
+
+    const animal = await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Bella', species: 'Chat' })
+      .expect(201);
+    const animalId = animal.body.id;
+
+    const startDate = '2020-01-01';
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/boardings`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Pension mensuelle',
+        price: 60,
+        periodicity: 'mensuel',
+        startDate,
+        dayOfMonth: 1,
+      })
+      .expect(201);
+
+    const expectedOccurrences = countElapsedOccurrences({
+      periodicity: 'mensuel',
+      startDate,
+      dayOfMonth: 1,
+      recurrenceMonth: null,
+      recurrenceDay: null,
+      dayOfWeek: null,
+    });
+
+    const animalBudget = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/budget`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(animalBudget.body.boardingTotal).toBe(60 * expectedOccurrences);
   });
 
   it('bloque le budget en plan gratuit (PLAN_LIMIT_BUDGET)', async () => {

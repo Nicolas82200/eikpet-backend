@@ -58,10 +58,12 @@ describe('Pension (e2e)', () => {
         name: 'Pension du Val',
         price: 250,
         periodicity: 'mensuel',
-        dueDate: '2026-09-01',
+        startDate: '2026-01-01',
+        dayOfMonth: 1,
       })
       .expect(201);
     expect(created.body.status).toBe('non_regle');
+    expect(created.body.dueDate.slice(0, 10)).toMatch(/^\d{4}-\d{2}-01$/);
 
     const list = await request(app.getHttpServer())
       .get(`/animals/${animalId}/boardings`)
@@ -119,5 +121,56 @@ describe('Pension (e2e)', () => {
       .send({ name: 'Pension X', dueDate: '2026-09-01' })
       .expect(403);
     expect(response.body.errorCode).toBe('PLAN_LIMIT_PENSION');
+  });
+
+  it('calcule automatiquement la prochaine echeance pour chaque periodicite', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'pension-periodicite',
+    );
+
+    const annuel = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/boardings`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Pension annuelle',
+        price: 500,
+        periodicity: 'annuel',
+        startDate: '2020-02-10',
+        recurrenceMonth: 2,
+        recurrenceDay: 10,
+      })
+      .expect(201);
+    expect(annuel.body.dueDate.slice(5, 10)).toBe('02-10');
+
+    const hebdo = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/boardings`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Pension hebdomadaire',
+        price: 30,
+        periodicity: 'hebdomadaire',
+        startDate: '2024-01-01',
+        dayOfWeek: 2,
+      })
+      .expect(201);
+    expect(hebdo.body.dueDate).toBeTruthy();
+  });
+
+  it('rejette une periodicite mensuelle sans jour du mois (champs de recurrence obligatoires)', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'pension-validation',
+    );
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/boardings`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Pension incomplete',
+        periodicity: 'mensuel',
+        startDate: '2026-01-01',
+      })
+      .expect(400);
   });
 });
