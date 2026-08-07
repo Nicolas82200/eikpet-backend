@@ -2,12 +2,14 @@ import type { MedicalProfile } from './repositories/medical-profile.repository';
 import type { Treatment } from './repositories/treatments.repository';
 import type { Provider } from '../providers/providers.repository';
 import type { Animal } from '../animals/animals.repository';
+import type { BehavioralNote } from './repositories/behavioral-notes.repository';
 
 export interface EmergencySheetData {
   animal: Animal & { age: { years: number; months: number } | null };
   medicalProfile: MedicalProfile | null;
   treatments: Treatment[];
   providers: Provider[];
+  behavioralNotes: BehavioralNote[];
 }
 
 function escapeHtml(value: string): string {
@@ -46,7 +48,8 @@ const PAGE_STYLES = `
 `;
 
 export function renderEmergencySheetHtml(sheet: EmergencySheetData): string {
-  const { animal, medicalProfile, treatments, providers } = sheet;
+  const { animal, medicalProfile, treatments, providers, behavioralNotes } =
+    sheet;
 
   const identityLines = [
     animal.currentWeightKg != null
@@ -61,7 +64,6 @@ export function renderEmergencySheetHtml(sheet: EmergencySheetData): string {
         line('Maladies chroniques', medicalProfile.chronicConditions),
         line('Allergies', medicalProfile.allergies),
         line('Regime particulier', medicalProfile.dietaryNeeds),
-        line('Notes comportementales', medicalProfile.behavioralNotes),
         line('Groupe sanguin', medicalProfile.bloodType),
         line('Assurance', medicalProfile.insuranceProvider),
         medicalProfile.referringVetName
@@ -72,6 +74,11 @@ export function renderEmergencySheetHtml(sheet: EmergencySheetData): string {
           : '',
       ].join('') || '<p class="empty">Aucune information renseignee.</p>'
     : '<p class="empty">Aucune information renseignee.</p>';
+
+  const behavioralNotesHtml =
+    behavioralNotes.length > 0
+      ? behavioralNotes.map((n) => `<p>${escapeHtml(n.note)}</p>`).join('')
+      : '<p class="empty">Aucune note comportementale.</p>';
 
   const treatmentsHtml =
     treatments.length > 0
@@ -116,6 +123,11 @@ export function renderEmergencySheetHtml(sheet: EmergencySheetData): string {
   <div class="card">
     <h2>Fiche medicale</h2>
     ${medicalLines}
+  </div>
+
+  <div class="card">
+    <h2>Notes comportementales</h2>
+    ${behavioralNotesHtml}
   </div>
 
   <div class="card">

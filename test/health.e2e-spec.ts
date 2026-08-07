@@ -76,6 +76,12 @@ describe('Health (e2e)', () => {
       .send({ providerId: provider.body.id })
       .expect(201);
 
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/behavioral-notes`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ note: 'Aime les gratouilles' })
+      .expect(201);
+
     const sheet = await request(app.getHttpServer())
       .get(`/animals/${animalId}/emergency-sheet`)
       .set('Authorization', `Bearer ${accessToken}`)
@@ -86,6 +92,8 @@ describe('Health (e2e)', () => {
     expect(sheet.body.treatments).toHaveLength(1);
     expect(sheet.body.providers).toHaveLength(1);
     expect(sheet.body.providers[0].name).toBe('Clinique du Parc');
+    expect(sheet.body.behavioralNotes).toHaveLength(1);
+    expect(sheet.body.behavioralNotes[0].note).toBe('Aime les gratouilles');
   });
 
   it("genere un lien de partage temporaire pour la fiche d'urgence, consultable sans authentification, revocable", async () => {
@@ -185,6 +193,43 @@ describe('Health (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     expect(listAfter.body).toHaveLength(0);
+  });
+
+  it('gere les notes comportementales (liste, ajout, suppression)', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'behavioral-notes',
+    );
+
+    const created = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/behavioral-notes`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ note: 'Aime les gratouilles' })
+      .expect(201);
+    expect(created.body.note).toBe('Aime les gratouilles');
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/behavioral-notes`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ note: 'Stressee en voiture' })
+      .expect(201);
+
+    const list = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/behavioral-notes`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(list.body).toHaveLength(2);
+
+    await request(app.getHttpServer())
+      .delete(`/animals/${animalId}/behavioral-notes/${created.body.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const listAfter = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/behavioral-notes`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(listAfter.body).toHaveLength(1);
   });
 
   it('suggere le protocole de primo-vaccination pour un chiot', async () => {

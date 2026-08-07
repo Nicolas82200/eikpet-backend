@@ -12,6 +12,7 @@ import { TreatmentsRepository } from './repositories/treatments.repository';
 import { SurgicalHistoryRepository } from './repositories/surgical-history.repository';
 import { HealthEntriesRepository } from './repositories/health-entries.repository';
 import { EmergencyShareRepository } from './repositories/emergency-share.repository';
+import { BehavioralNotesRepository } from './repositories/behavioral-notes.repository';
 
 @Module({
   imports: [TokenModule, AnimalsModule, SubscriptionsModule, ProvidersModule],
@@ -24,6 +25,7 @@ import { EmergencyShareRepository } from './repositories/emergency-share.reposit
     SurgicalHistoryRepository,
     HealthEntriesRepository,
     EmergencyShareRepository,
+    BehavioralNotesRepository,
   ],
   exports: [RemindersService, HealthEntriesRepository],
 })
