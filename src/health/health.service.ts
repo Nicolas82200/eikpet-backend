@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { createHash, randomBytes } from 'crypto';
 import { AnimalsService } from '../animals/animals.service';
+import { AnimalsRepository } from '../animals/animals.repository';
+import { calculateAge } from '../animals/age.util';
 import {
   MedicalProfileRepository,
   type MedicalProfileInput,
@@ -19,6 +22,9 @@ import {
 import { RemindersService } from './reminders.service';
 import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import { AnimalProvidersRepository } from '../providers/animal-providers.repository';
+import { EmergencyShareRepository } from './repositories/emergency-share.repository';
+
+const DEFAULT_SHARE_LINK_HOURS = 72;
 
 @Injectable()
 export class HealthService {
@@ -31,12 +37,76 @@ export class HealthService {
     private readonly remindersService: RemindersService,
     private readonly planLimitsService: PlanLimitsService,
     private readonly animalProvidersRepository: AnimalProvidersRepository,
+    private readonly emergencyShareRepository: EmergencyShareRepository,
+    private readonly animalsRepository: AnimalsRepository,
   ) {}
 
   // --- Fiche d'urgence (3.2 bonus) : reste gratuite en toutes circonstances, cf. cahier des charges. ---
 
   async getEmergencySheet(userId: number, animalId: number) {
-    const animal = await this.animalsService.getForUser(userId, animalId);
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    return this.buildEmergencySheet(animalId);
+  }
+
+  /** Consultation publique (pet-sitter) via un lien temporaire : aucune authentification requise. */
+  async getEmergencySheetByToken(token: string) {
+    const animalId =
+      await this.emergencyShareRepository.findValidAnimalIdByTokenHash(
+        hashShareToken(token),
+      );
+    if (!animalId) {
+      throw new NotFoundException('Lien invalide ou expire');
+    }
+    return this.buildEmergencySheet(animalId);
+  }
+
+  async createEmergencyShareLink(
+    userId: number,
+    animalId: number,
+    expiresInHours?: number,
+  ) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(
+      Date.now() + (expiresInHours ?? DEFAULT_SHARE_LINK_HOURS) * 3_600_000,
+    );
+    const link = await this.emergencyShareRepository.create(
+      animalId,
+      hashShareToken(token),
+      expiresAt,
+    );
+    return { ...link, token };
+  }
+
+  async listEmergencyShareLinks(userId: number, animalId: number) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    return this.emergencyShareRepository.findActiveByAnimal(animalId);
+  }
+
+  async revokeEmergencyShareLink(
+    userId: number,
+    animalId: number,
+    linkId: number,
+  ) {
+    await this.animalsService.findAndAssertAccess(userId, animalId);
+    await this.emergencyShareRepository.revoke(linkId, animalId);
+  }
+
+  /**
+   * Acces direct par animalId, sans verification d'appartenance a un foyer : l'appelant
+   * (getEmergencySheet ou getEmergencySheetByToken) a deja valide l'acces en amont.
+   */
+  private async buildEmergencySheet(animalId: number) {
+    const rawAnimal = await this.animalsRepository.findById(animalId);
+    if (!rawAnimal) {
+      throw new NotFoundException('Animal introuvable');
+    }
+    const animal = {
+      ...rawAnimal,
+      age: rawAnimal.birthDate
+        ? calculateAge(new Date(rawAnimal.birthDate))
+        : null,
+    };
     const [medicalProfile, treatments, providers] = await Promise.all([
       this.medicalProfileRepository.findByAnimalId(animalId),
       this.treatmentsRepository.findByAnimal(animalId),
@@ -208,4 +278,8 @@ export class HealthService {
     }
     return input.nextReminderDate ?? null;
   }
+}
+
+function hashShareToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }

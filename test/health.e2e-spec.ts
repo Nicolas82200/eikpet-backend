@@ -88,6 +88,56 @@ describe('Health (e2e)', () => {
     expect(sheet.body.providers[0].name).toBe('Clinique du Parc');
   });
 
+  it("genere un lien de partage temporaire pour la fiche d'urgence, consultable sans authentification, revocable", async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'emergency-share',
+    );
+
+    const link = await request(app.getHttpServer())
+      .post(`/animals/${animalId}/emergency-sheet/share-links`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({})
+      .expect(201);
+
+    expect(link.body.token).toBeTruthy();
+    expect(link.body.id).toBeTruthy();
+
+    const shared = await request(app.getHttpServer())
+      .get(`/emergency-sheet/shared/${link.body.token}`)
+      .expect(200);
+    expect(shared.body.animal.name).toBe('Patient');
+
+    const list = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/emergency-sheet/share-links`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(list.body).toHaveLength(1);
+
+    await request(app.getHttpServer())
+      .delete(
+        `/animals/${animalId}/emergency-sheet/share-links/${link.body.id}`,
+      )
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/emergency-sheet/shared/${link.body.token}`)
+      .expect(404);
+
+    const listAfter = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/emergency-sheet/share-links`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(listAfter.body).toHaveLength(0);
+  });
+
+  it("refuse un token de partage invalide pour la fiche d'urgence", async () => {
+    await request(app.getHttpServer())
+      .get('/emergency-sheet/shared/token-invalide')
+      .expect(404);
+  });
+
   it('enregistre et relit la fiche medicale', async () => {
     const { accessToken, animalId } = await registerWithAnimal(app, 'medical');
 
