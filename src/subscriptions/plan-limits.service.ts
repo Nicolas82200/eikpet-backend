@@ -90,6 +90,14 @@ export class PlanLimitsService {
     );
   }
 
+  async assertCanUseBudget(householdId: number): Promise<void> {
+    await this.assertPremiumFeature(
+      householdId,
+      'PLAN_LIMIT_BUDGET',
+      "Le suivi budgetaire n'est disponible qu'avec l'abonnement.",
+    );
+  }
+
   /** Date plancher du carnet de sante visible en gratuit, ou null si aucun filtre (premium). */
   async getHealthHistoryFloorDate(householdId: number): Promise<Date | null> {
     const isPremium =

@@ -124,6 +124,20 @@ describe('PlanLimitsService', () => {
     });
   });
 
+  describe('assertCanUseBudget', () => {
+    it('bloque le suivi budgetaire sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUseBudget(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise le suivi budgetaire sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(service.assertCanUseBudget(1)).resolves.toBeUndefined();
+    });
+  });
+
   describe('getHealthHistoryFloorDate', () => {
     it('renvoie null (pas de filtre) pour un foyer premium', async () => {
       const service = makeService({ isHouseholdPremium: true });

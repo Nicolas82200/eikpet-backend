@@ -111,6 +111,15 @@ export class BoardingsRepository {
     await this.pool.query('DELETE FROM boarding_entries WHERE id = ?', [id]);
   }
 
+  /** Utilise par le module budget : somme des prix de pension pour un animal. */
+  async sumPriceForAnimal(animalId: number): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT COALESCE(SUM(price), 0) AS total FROM boarding_entries WHERE animal_id = ?',
+      [animalId],
+    );
+    return Number((rows[0] as { total: number }).total);
+  }
+
   /** Utilise par le module budget : somme des prix de pension, tous animaux d'un foyer. */
   async sumPriceForHousehold(householdId: number): Promise<number> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
