@@ -10,6 +10,7 @@ import { AnimalsController } from './animals.controller';
 import { AnimalsService } from './animals.service';
 import { AnimalsRepositoryModule } from './animals-repository.module';
 import { DocumentsRepositoryModule } from '../documents/documents-repository.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import type { AppConfig } from '../config/configuration';
 
 @Module({
@@ -18,6 +19,7 @@ import type { AppConfig } from '../config/configuration';
     HouseholdsModule,
     AnimalsRepositoryModule,
     DocumentsRepositoryModule,
+    SubscriptionsModule,
     MulterModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<AppConfig, true>) => ({

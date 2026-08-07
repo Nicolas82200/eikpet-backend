@@ -6,6 +6,7 @@ import {
 import { unlink } from 'fs/promises';
 import { HouseholdsRepository } from '../households/households.repository';
 import { AnimalsService } from '../animals/animals.service';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import {
   DocumentsRepository,
   type DocumentCategory,
@@ -24,6 +25,7 @@ export class DocumentsService {
     private readonly householdsRepository: HouseholdsRepository,
     private readonly animalsService: AnimalsService,
     private readonly documentsRepository: DocumentsRepository,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   async upload(
@@ -34,6 +36,14 @@ export class DocumentsService {
     file: UploadedFileInfo,
   ) {
     await this.assertMember(userId, householdId);
+    try {
+      await this.planLimitsService.assertCanUploadDocument(householdId);
+    } catch (err) {
+      // Multer a deja ecrit le fichier sur disque avant l'appel a ce service : on le
+      // nettoie pour ne pas laisser de fichier orphelin si la limite de plan bloque l'upload.
+      await unlink(file.path).catch(() => undefined);
+      throw err;
+    }
     if (animalId !== null) {
       const animal = await this.animalsService.findAndAssertAccess(
         userId,

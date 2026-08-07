@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { join } from 'path';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 const SAMPLE_FILE = join(__dirname, 'fixtures', 'sample.txt');
 
@@ -61,6 +62,7 @@ describe('Account deletion (e2e)', () => {
       .set('Authorization', `Bearer ${register.body.accessToken}`)
       .expect(200);
     const householdId = households.body[0].id;
+    await activatePremium(app, register.body.accessToken);
 
     // Uploader un document pour verifier que la contrainte FK sur uploaded_by_user_id
     // ne bloque pas la suppression (regression test pour la migration 0004)

@@ -3,6 +3,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { join } from 'path';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 const SAMPLE_FILE = join(__dirname, 'fixtures', 'sample.txt');
 
@@ -48,6 +49,7 @@ describe('Documents (e2e)', () => {
       app,
       'doc-upload',
     );
+    await activatePremium(app, accessToken);
 
     const uploaded = await request(app.getHttpServer())
       .post(`/households/${householdId}/documents`)
@@ -73,6 +75,7 @@ describe('Documents (e2e)', () => {
       app,
       'doc-animal',
     );
+    await activatePremium(app, accessToken);
 
     const animal = await request(app.getHttpServer())
       .post(`/households/${householdId}/animals`)
@@ -115,6 +118,7 @@ describe('Documents (e2e)', () => {
       app,
       'doc-visibility-stranger',
     );
+    await activatePremium(app, owner.accessToken);
 
     await request(app.getHttpServer())
       .post(`/households/${owner.householdId}/documents`)
@@ -132,6 +136,7 @@ describe('Documents (e2e)', () => {
   it("telecharge le fichier uploade et refuse un membre d'un autre foyer", async () => {
     const owner = await registerWithHousehold(app, 'doc-download-owner');
     const stranger = await registerWithHousehold(app, 'doc-download-stranger');
+    await activatePremium(app, owner.accessToken);
 
     const uploaded = await request(app.getHttpServer())
       .post(`/households/${owner.householdId}/documents`)
@@ -157,6 +162,7 @@ describe('Documents (e2e)', () => {
       app,
       'doc-delete',
     );
+    await activatePremium(app, accessToken);
 
     const uploaded = await request(app.getHttpServer())
       .post(`/households/${householdId}/documents`)

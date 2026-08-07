@@ -22,9 +22,4 @@ export class RemindersService {
     next.setUTCMonth(next.getUTCMonth() + recurrenceMonths);
     return next;
   }
-
-  /** Decalages (en jours avant l'echeance) auxquels une notification push doit etre envoyee. */
-  getNotificationOffsets(): number[] {
-    return [7, 1, 0];
-  }
 }

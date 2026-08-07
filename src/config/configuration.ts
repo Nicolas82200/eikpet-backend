@@ -29,6 +29,9 @@ export interface AppConfig {
     senderEmail: string;
     senderName: string;
   };
+  revenuecat: {
+    webhookSecret: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -61,5 +64,8 @@ export default (): AppConfig => ({
     apiKey: process.env.BREVO_API_KEY ?? '',
     senderEmail: process.env.BREVO_SENDER_EMAIL ?? 'no-reply@eikpet.fr',
     senderName: process.env.BREVO_SENDER_NAME ?? 'EikPet',
+  },
+  revenuecat: {
+    webhookSecret: process.env.REVENUECAT_WEBHOOK_SECRET ?? '',
   },
 });

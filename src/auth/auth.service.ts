@@ -14,6 +14,7 @@ import { HouseholdsRepository } from '../households/households.repository';
 import { HouseholdsService } from '../households/households.service';
 import { generateInviteCode } from '../households/invite-code.util';
 import { EmailService } from '../email/email.service';
+import { PlanLimitsService } from '../subscriptions/plan-limits.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly householdsService: HouseholdsService,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
+    private readonly planLimitsService: PlanLimitsService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthTokens> {
@@ -106,6 +108,7 @@ export class AuthService {
       userId,
     );
     if (!alreadyMember) {
+      await this.planLimitsService.assertCanJoinOrCreateHousehold(userId);
       await this.householdsRepository.addMember(household.id, userId, 'member');
     }
     return household;
