@@ -64,6 +64,24 @@ export class HouseholdsRepository {
     return rows.length > 0;
   }
 
+  async getRole(
+    householdId: number,
+    userId: number,
+  ): Promise<HouseholdRole | null> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT role FROM household_members WHERE household_id = ? AND user_id = ? LIMIT 1',
+      [householdId, userId],
+    );
+    return (rows[0]?.role as HouseholdRole) ?? null;
+  }
+
+  async rename(householdId: number, name: string): Promise<void> {
+    await this.pool.query('UPDATE households SET name = ? WHERE id = ?', [
+      name,
+      householdId,
+    ]);
+  }
+
   async listForUser(
     userId: number,
   ): Promise<(Household & { role: HouseholdRole })[]> {
@@ -96,5 +114,16 @@ export class HouseholdsRepository {
       'UPDATE households SET invite_code = ? WHERE id = ?',
       [inviteCode, householdId],
     );
+  }
+
+  async removeMember(householdId: number, userId: number): Promise<void> {
+    await this.pool.query(
+      'DELETE FROM household_members WHERE household_id = ? AND user_id = ?',
+      [householdId, userId],
+    );
+  }
+
+  async delete(householdId: number): Promise<void> {
+    await this.pool.query('DELETE FROM households WHERE id = ?', [householdId]);
   }
 }

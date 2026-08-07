@@ -129,6 +129,29 @@ describe('Documents (e2e)', () => {
       .expect(403);
   });
 
+  it("telecharge le fichier uploade et refuse un membre d'un autre foyer", async () => {
+    const owner = await registerWithHousehold(app, 'doc-download-owner');
+    const stranger = await registerWithHousehold(app, 'doc-download-stranger');
+
+    const uploaded = await request(app.getHttpServer())
+      .post(`/households/${owner.householdId}/documents`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .field('category', 'autre')
+      .attach('file', SAMPLE_FILE)
+      .expect(201);
+
+    const downloaded = await request(app.getHttpServer())
+      .get(`/documents/${uploaded.body.id}/file`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    expect(downloaded.text).toContain('document de test');
+
+    await request(app.getHttpServer())
+      .get(`/documents/${uploaded.body.id}/file`)
+      .set('Authorization', `Bearer ${stranger.accessToken}`)
+      .expect(403);
+  });
+
   it('supprime un document', async () => {
     const { accessToken, householdId } = await registerWithHousehold(
       app,

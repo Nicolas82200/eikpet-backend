@@ -1,6 +1,7 @@
 import {
   IsIn,
   IsISO8601,
+  IsMilitaryTime,
   IsNumber,
   IsOptional,
   IsString,
@@ -26,6 +27,10 @@ export class CreateHealthEntryDto {
 
   @IsISO8601()
   scheduledDate!: string;
+
+  @IsOptional()
+  @IsMilitaryTime()
+  scheduledTime?: string;
 
   @IsOptional()
   @IsIn(['prevu', 'fait'])

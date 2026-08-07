@@ -9,7 +9,8 @@ export interface DocumentRecord {
   id: number;
   householdId: number;
   animalId: number | null;
-  uploadedByUserId: number;
+  /** Peut devenir null si le compte de l'uploadeur a ete supprime (ON DELETE SET NULL). */
+  uploadedByUserId: number | null;
   fileName: string;
   filePath: string;
   mimeType: string;

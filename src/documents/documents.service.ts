@@ -74,6 +74,15 @@ export class DocumentsService {
     await unlink(document.filePath).catch(() => undefined);
   }
 
+  async getFileForDownload(userId: number, documentId: number) {
+    const document = await this.documentsRepository.findById(documentId);
+    if (!document) {
+      throw new NotFoundException('Document introuvable');
+    }
+    await this.assertMember(userId, document.householdId);
+    return document;
+  }
+
   private async assertMember(
     userId: number,
     householdId: number,

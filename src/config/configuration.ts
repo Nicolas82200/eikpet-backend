@@ -16,10 +16,18 @@ export interface AppConfig {
   documents: {
     storagePath: string;
   };
+  photos: {
+    storagePath: string;
+  };
   fcm: {
     projectId: string;
     clientEmail: string;
     privateKey: string;
+  };
+  brevo: {
+    apiKey: string;
+    senderEmail: string;
+    senderName: string;
   };
 }
 
@@ -41,9 +49,17 @@ export default (): AppConfig => ({
   documents: {
     storagePath: process.env.DOCUMENTS_STORAGE_PATH ?? './storage/documents',
   },
+  photos: {
+    storagePath: process.env.PHOTOS_STORAGE_PATH ?? './storage/photos',
+  },
   fcm: {
     projectId: process.env.FCM_PROJECT_ID ?? '',
     clientEmail: process.env.FCM_CLIENT_EMAIL ?? '',
     privateKey: (process.env.FCM_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+  },
+  brevo: {
+    apiKey: process.env.BREVO_API_KEY ?? '',
+    senderEmail: process.env.BREVO_SENDER_EMAIL ?? 'no-reply@eikpet.fr',
+    senderName: process.env.BREVO_SENDER_NAME ?? 'EikPet',
   },
 });

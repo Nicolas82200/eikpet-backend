@@ -6,4 +6,7 @@ coverage/
 storage/documents/*
 !storage/documents/.gitkeep
 storage/documents-test/
+storage/photos/*
+!storage/photos/.gitkeep
+storage/photos-test/
 *.log

@@ -97,4 +97,226 @@ describe('Households isolation (e2e)', () => {
     expect(members.body).toHaveLength(1);
     expect(members.body[0].role).toBe('owner');
   });
+
+  it('permet au proprietaire de renommer le foyer, refuse a un simple membre', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'rename-owner',
+      'Nom initial',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('rename-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .send({ name: 'Tentative membre' })
+      .expect(403);
+
+    const renamed = await request(app.getHttpServer())
+      .patch(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Nouveau nom' })
+      .expect(200);
+
+    expect(renamed.body.name).toBe('Nouveau nom');
+  });
+
+  it("reserve la regeneration du code d'invitation au proprietaire", async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'regen-owner',
+      'Foyer regen',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('regen-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/invite-code/regenerate`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/invite-code/regenerate`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(201);
+  });
+
+  it('permet au proprietaire de retirer un membre, refuse a un simple membre', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'remove-owner',
+      'Foyer remove',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+    const memberEmail = uniqueEmail('remove-member');
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: memberEmail,
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    const membersBefore = await request(app.getHttpServer())
+      .get(`/households/${householdId}/members`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const memberUserId = membersBefore.body.find(
+      (m: { email: string }) => m.email === memberEmail,
+    ).id;
+
+    // Un simple membre ne peut pas retirer quelqu'un
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}/members/${memberUserId}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}/members/${memberUserId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(204);
+
+    const membersAfter = await request(app.getHttpServer())
+      .get(`/households/${householdId}/members`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    expect(membersAfter.body).toHaveLength(1);
+  });
+
+  it('permet a un membre de quitter le foyer, empeche le proprietaire de le faire', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'leave-owner',
+      'Foyer leave',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('leave-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/leave`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/leave`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(204);
+
+    const membersAfter = await request(app.getHttpServer())
+      .get(`/households/${householdId}/members`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    expect(membersAfter.body).toHaveLength(1);
+  });
+
+  it('permet au proprietaire de supprimer le foyer, refuse a un simple membre', async () => {
+    const owner = await registerWithHousehold(
+      app,
+      'delete-owner',
+      'Foyer a supprimer',
+    );
+    const households = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    const householdId = households.body[0].id;
+    const inviteCode = households.body[0].inviteCode;
+
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: uniqueEmail('delete-member'),
+        password: 'password123',
+        firstName: 'Membre',
+        lastName: 'Test',
+        inviteCode,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ name: 'Rex', species: 'Chien' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(204);
+
+    // Le foyer n'apparait plus dans la liste, meme pour l'ancien proprietaire
+    const householdsAfter = await request(app.getHttpServer())
+      .get('/households')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(200);
+    expect(
+      householdsAfter.body.find((h: { id: number }) => h.id === householdId),
+    ).toBeUndefined();
+
+    // Plus personne (meme l'ex-proprietaire) ne peut plus y acceder
+    await request(app.getHttpServer())
+      .get(`/households/${householdId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .expect(403);
+  });
 });

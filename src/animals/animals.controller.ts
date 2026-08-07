@@ -7,8 +7,14 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express, Response } from 'express';
+import { resolve } from 'path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard';
@@ -61,5 +67,25 @@ export class AnimalsController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.animalsService.delete(user.id, id);
+  }
+
+  @Post('animals/:id/photo')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadPhoto(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.animalsService.setPhoto(user.id, id, file.path);
+  }
+
+  @Get('animals/:id/photo')
+  async downloadPhoto(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const filePath = await this.animalsService.getPhotoPath(user.id, id);
+    res.sendFile(resolve(filePath));
   }
 }

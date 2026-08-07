@@ -44,4 +44,18 @@ export class UsersRepository {
     );
     return { id: result.insertId, email, passwordHash, firstName, lastName };
   }
+
+  async updatePasswordHash(
+    userId: number,
+    passwordHash: string,
+  ): Promise<void> {
+    await this.pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [
+      passwordHash,
+      userId,
+    ]);
+  }
+
+  async delete(userId: number): Promise<void> {
+    await this.pool.query('DELETE FROM users WHERE id = ?', [userId]);
+  }
 }
