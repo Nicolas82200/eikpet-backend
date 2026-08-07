@@ -16,6 +16,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ProvidersModule } from './providers/providers.module';
+import { PensionModule } from './pension/pension.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ProvidersModule } from './providers/providers.module';
     DocumentsModule,
     SubscriptionsModule,
     ProvidersModule,
+    PensionModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

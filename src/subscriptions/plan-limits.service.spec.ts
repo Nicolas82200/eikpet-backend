@@ -96,6 +96,20 @@ describe('PlanLimitsService', () => {
     });
   });
 
+  describe('assertCanUsePension', () => {
+    it('bloque le suivi de pension sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUsePension(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise le suivi de pension sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(service.assertCanUsePension(1)).resolves.toBeUndefined();
+    });
+  });
+
   describe('getHealthHistoryFloorDate', () => {
     it('renvoie null (pas de filtre) pour un foyer premium', async () => {
       const service = makeService({ isHouseholdPremium: true });
