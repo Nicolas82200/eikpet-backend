@@ -119,6 +119,29 @@ export class AnimalsRepository {
   }
 }
 
+/**
+ * mysql2 renvoie les colonnes DATE sous forme d'objet Date en heure locale (un
+ * toISOString() naif decalerait la date d'un jour selon le fuseau horaire du serveur)
+ * et les colonnes DECIMAL sous forme de chaine : on normalise les deux ici.
+ */
 function mapRowToAnimal(row: RowDataPacket): Animal {
-  return { ...row, sterilized: Boolean(row.sterilized) } as Animal;
+  return {
+    ...row,
+    sterilized: Boolean(row.sterilized),
+    birthDate: row.birthDate
+      ? formatDateOnly(row.birthDate as Date | string)
+      : null,
+    currentWeightKg:
+      row.currentWeightKg != null ? Number(row.currentWeightKg) : null,
+  } as Animal;
+}
+
+function formatDateOnly(value: Date | string): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

@@ -94,6 +94,48 @@ describe('Health (e2e)', () => {
     expect(listAfter.body).toHaveLength(0);
   });
 
+  it('suggere le protocole de primo-vaccination pour un chiot', async () => {
+    const { accessToken, householdId } = await registerWithAnimal(
+      app,
+      'vaccin-schedule-chiot',
+    );
+
+    const tenWeeksAgo = new Date();
+    tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 10 * 7);
+    const puppy = await request(app.getHttpServer())
+      .post(`/households/${householdId}/animals`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Milo',
+        species: 'Chien',
+        birthDate: tenWeeksAgo.toISOString().slice(0, 10),
+      })
+      .expect(201);
+
+    const schedule = await request(app.getHttpServer())
+      .get(`/animals/${puppy.body.id}/vaccination-schedule`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(schedule.body).toHaveLength(4);
+    expect(schedule.body[3].label).toBe('Premier rappel annuel');
+  });
+
+  it('ne suggere aucun protocole pour un animal adulte ou hors chien/chat', async () => {
+    const { accessToken, animalId } = await registerWithAnimal(
+      app,
+      'vaccin-schedule-adulte',
+    );
+
+    const schedule = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/vaccination-schedule`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    // Nest ne serialise pas explicitement `null` : la reponse est vide (corps {} cote client).
+    expect(schedule.body).toEqual({});
+  });
+
   it('calcule automatiquement le prochain rappel via recurrenceMonths', async () => {
     const { accessToken, animalId } = await registerWithAnimal(
       app,
