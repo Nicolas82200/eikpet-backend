@@ -19,6 +19,7 @@ import { ProvidersModule } from './providers/providers.module';
 import { PensionModule } from './pension/pension.module';
 import { BudgetModule } from './budget/budget.module';
 import { SeancesModule } from './seances/seances.module';
+import { WeightModule } from './weight/weight.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { SeancesModule } from './seances/seances.module';
     PensionModule,
     BudgetModule,
     SeancesModule,
+    WeightModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
