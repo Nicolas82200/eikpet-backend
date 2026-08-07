@@ -4,6 +4,7 @@ import { AnimalsModule } from '../animals/animals.module';
 import { HouseholdsRepositoryModule } from '../households/households-repository.module';
 import { HealthModule } from '../health/health.module';
 import { PensionModule } from '../pension/pension.module';
+import { SeancesModule } from '../seances/seances.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { BudgetController } from './budget.controller';
 import { BudgetService } from './budget.service';
@@ -15,6 +16,7 @@ import { BudgetService } from './budget.service';
     HouseholdsRepositoryModule,
     HealthModule,
     PensionModule,
+    SeancesModule,
     SubscriptionsModule,
   ],
   controllers: [BudgetController],

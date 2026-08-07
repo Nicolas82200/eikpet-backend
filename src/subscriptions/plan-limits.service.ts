@@ -98,6 +98,22 @@ export class PlanLimitsService {
     );
   }
 
+  async assertCanUseRidingSessions(householdId: number): Promise<void> {
+    await this.assertPremiumFeature(
+      householdId,
+      'PLAN_LIMIT_RIDING_SESSIONS',
+      "Les seances chevaux ne sont disponibles qu'avec l'abonnement.",
+    );
+  }
+
+  async assertCanUseProviderMap(householdId: number): Promise<void> {
+    await this.assertPremiumFeature(
+      householdId,
+      'PLAN_LIMIT_PROVIDER_MAP',
+      "La carte interactive des intervenants n'est disponible qu'avec l'abonnement.",
+    );
+  }
+
   /** Date plancher du carnet de sante visible en gratuit, ou null si aucun filtre (premium). */
   async getHealthHistoryFloorDate(householdId: number): Promise<Date | null> {
     const isPremium =

@@ -138,6 +138,36 @@ describe('PlanLimitsService', () => {
     });
   });
 
+  describe('assertCanUseRidingSessions', () => {
+    it('bloque les seances chevaux sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUseRidingSessions(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise les seances chevaux sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(
+        service.assertCanUseRidingSessions(1),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('assertCanUseProviderMap', () => {
+    it('bloque la carte des intervenants sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUseProviderMap(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise la carte des intervenants sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(service.assertCanUseProviderMap(1)).resolves.toBeUndefined();
+    });
+  });
+
   describe('getHealthHistoryFloorDate', () => {
     it('renvoie null (pas de filtre) pour un foyer premium', async () => {
       const service = makeService({ isHouseholdPremium: true });
