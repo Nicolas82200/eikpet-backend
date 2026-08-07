@@ -5,6 +5,7 @@ export type PlanLimitCode =
   | 'PLAN_LIMIT_ANIMAL'
   | 'PLAN_LIMIT_DOCUMENT'
   | 'PLAN_LIMIT_PENSION'
+  | 'PLAN_LIMIT_REPORTS'
   | 'PLAN_LIMIT_BUDGET';
 
 /**

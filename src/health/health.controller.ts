@@ -95,6 +95,16 @@ export class HealthController {
     return this.healthService.deleteSurgicalHistory(user.id, animalId, entryId);
   }
 
+  // --- Comptes-rendus ---
+
+  @Get('reports')
+  listReports(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('animalId', ParseIntPipe) animalId: number,
+  ) {
+    return this.healthService.listReports(user.id, animalId);
+  }
+
   // --- Carnet de sante ---
 
   @Get('health-entries')

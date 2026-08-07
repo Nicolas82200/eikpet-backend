@@ -110,6 +110,20 @@ describe('PlanLimitsService', () => {
     });
   });
 
+  describe('assertCanUseReports', () => {
+    it('bloque l historique consolide sur un foyer gratuit', async () => {
+      const service = makeService({});
+      await expect(service.assertCanUseReports(1)).rejects.toThrow(
+        PlanLimitException,
+      );
+    });
+
+    it('autorise l historique consolide sur un foyer premium', async () => {
+      const service = makeService({ isHouseholdPremium: true });
+      await expect(service.assertCanUseReports(1)).resolves.toBeUndefined();
+    });
+  });
+
   describe('getHealthHistoryFloorDate', () => {
     it('renvoie null (pas de filtre) pour un foyer premium', async () => {
       const service = makeService({ isHouseholdPremium: true });
