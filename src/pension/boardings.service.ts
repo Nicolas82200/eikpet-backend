@@ -5,6 +5,7 @@ import {
   BoardingsRepository,
   type BoardingEntryInput,
 } from './boardings.repository';
+import { computeNextDueDate } from './boarding-schedule.util';
 
 @Injectable()
 export class BoardingsService {
@@ -25,7 +26,10 @@ export class BoardingsService {
       animalId,
     );
     await this.planLimitsService.assertCanUsePension(animal.householdId);
-    return this.boardingsRepository.create(animalId, input);
+    return this.boardingsRepository.create(
+      animalId,
+      this.withComputedDueDate(input),
+    );
   }
 
   async update(
@@ -39,8 +43,52 @@ export class BoardingsService {
       animalId,
     );
     await this.planLimitsService.assertCanUsePension(animal.householdId);
-    await this.getOwnedEntry(animalId, entryId);
-    return this.boardingsRepository.update(entryId, input);
+    const existing = await this.getOwnedEntry(animalId, entryId);
+    const periodicity = input.periodicity ?? existing.periodicity;
+
+    if (periodicity === 'unique') {
+      return this.boardingsRepository.update(entryId, input);
+    }
+
+    const nextDueDate = computeNextDueDate({
+      periodicity,
+      startDate:
+        'startDate' in input ? (input.startDate ?? null) : existing.startDate,
+      dayOfMonth:
+        'dayOfMonth' in input
+          ? (input.dayOfMonth ?? null)
+          : existing.dayOfMonth,
+      recurrenceMonth:
+        'recurrenceMonth' in input
+          ? (input.recurrenceMonth ?? null)
+          : existing.recurrenceMonth,
+      recurrenceDay:
+        'recurrenceDay' in input
+          ? (input.recurrenceDay ?? null)
+          : existing.recurrenceDay,
+      dayOfWeek:
+        'dayOfWeek' in input ? (input.dayOfWeek ?? null) : existing.dayOfWeek,
+    });
+    return this.boardingsRepository.update(entryId, {
+      ...input,
+      dueDate: nextDueDate ?? existing.dueDate,
+    });
+  }
+
+  /** Pour les periodicites recurrentes, la prochaine echeance est calculee automatiquement depuis start_date. */
+  private withComputedDueDate(input: BoardingEntryInput): BoardingEntryInput {
+    if (!input.periodicity || input.periodicity === 'unique') {
+      return input;
+    }
+    const nextDueDate = computeNextDueDate({
+      periodicity: input.periodicity,
+      startDate: input.startDate ?? null,
+      dayOfMonth: input.dayOfMonth ?? null,
+      recurrenceMonth: input.recurrenceMonth ?? null,
+      recurrenceDay: input.recurrenceDay ?? null,
+      dayOfWeek: input.dayOfWeek ?? null,
+    });
+    return { ...input, dueDate: nextDueDate ?? input.dueDate };
   }
 
   async delete(userId: number, animalId: number, entryId: number) {

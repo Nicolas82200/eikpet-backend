@@ -29,6 +29,10 @@ class DatabasePoolHolder implements OnModuleDestroy {
           waitForConnections: true,
           connectionLimit: 10,
           namedPlaceholders: false,
+          // Les colonnes DATE (pas DATETIME) reviennent en chaine "AAAA-MM-JJ" brute :
+          // sinon mysql2 les convertit en Date JS a minuit local, et la serialisation JSON
+          // (toISOString -> UTC) peut faire glisser le jour affiche de +/-1 selon le fuseau du serveur.
+          dateStrings: ['DATE'],
         });
         return new DatabasePoolHolder(pool);
       },
