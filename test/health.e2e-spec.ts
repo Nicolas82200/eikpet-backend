@@ -106,7 +106,8 @@ describe('Health (e2e)', () => {
     const shared = await request(app.getHttpServer())
       .get(`/emergency-sheet/shared/${link.body.token}`)
       .expect(200);
-    expect(shared.body.animal.name).toBe('Patient');
+    expect(shared.headers['content-type']).toContain('text/html');
+    expect(shared.text).toContain('Patient');
 
     const list = await request(app.getHttpServer())
       .get(`/animals/${animalId}/emergency-sheet/share-links`)
