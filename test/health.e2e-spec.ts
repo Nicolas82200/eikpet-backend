@@ -46,6 +46,48 @@ describe('Health (e2e)', () => {
     await app.close();
   });
 
+  it("assemble la fiche d'urgence (profil, traitements, intervenants), sans limite de plan", async () => {
+    const { accessToken, householdId, animalId } = await registerWithAnimal(
+      app,
+      'emergency',
+    );
+
+    await request(app.getHttpServer())
+      .put(`/animals/${animalId}/medical-profile`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ allergies: 'Pollen', referringVetName: 'Dr Martin' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/treatments`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'Anti-inflammatoire', dosage: '1cp/jour' })
+      .expect(201);
+
+    const provider = await request(app.getHttpServer())
+      .post(`/households/${householdId}/providers`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ type: 'veto', name: 'Clinique du Parc', phone: '0102030405' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/animals/${animalId}/providers`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ providerId: provider.body.id })
+      .expect(201);
+
+    const sheet = await request(app.getHttpServer())
+      .get(`/animals/${animalId}/emergency-sheet`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(sheet.body.animal.name).toBe('Patient');
+    expect(sheet.body.medicalProfile.allergies).toBe('Pollen');
+    expect(sheet.body.treatments).toHaveLength(1);
+    expect(sheet.body.providers).toHaveLength(1);
+    expect(sheet.body.providers[0].name).toBe('Clinique du Parc');
+  });
+
   it('enregistre et relit la fiche medicale', async () => {
     const { accessToken, animalId } = await registerWithAnimal(app, 'medical');
 

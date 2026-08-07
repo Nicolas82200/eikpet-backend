@@ -18,6 +18,7 @@ import {
 } from './repositories/health-entries.repository';
 import { RemindersService } from './reminders.service';
 import { PlanLimitsService } from '../subscriptions/plan-limits.service';
+import { AnimalProvidersRepository } from '../providers/animal-providers.repository';
 
 @Injectable()
 export class HealthService {
@@ -29,7 +30,20 @@ export class HealthService {
     private readonly healthEntriesRepository: HealthEntriesRepository,
     private readonly remindersService: RemindersService,
     private readonly planLimitsService: PlanLimitsService,
+    private readonly animalProvidersRepository: AnimalProvidersRepository,
   ) {}
+
+  // --- Fiche d'urgence (3.2 bonus) : reste gratuite en toutes circonstances, cf. cahier des charges. ---
+
+  async getEmergencySheet(userId: number, animalId: number) {
+    const animal = await this.animalsService.getForUser(userId, animalId);
+    const [medicalProfile, treatments, providers] = await Promise.all([
+      this.medicalProfileRepository.findByAnimalId(animalId),
+      this.treatmentsRepository.findByAnimal(animalId),
+      this.animalProvidersRepository.findByAnimal(animalId),
+    ]);
+    return { animal, medicalProfile, treatments, providers };
+  }
 
   // --- Fiche medicale ---
 
