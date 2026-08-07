@@ -20,6 +20,8 @@ export interface Provider {
   phone: string | null;
   email: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
 }
 
@@ -30,12 +32,14 @@ export interface ProviderInput {
   phone?: string | null;
   email?: string | null;
   address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   notes?: string | null;
 }
 
 const SELECT_FIELDS = `
   id, household_id AS householdId, type, custom_type_label AS customTypeLabel,
-  name, phone, email, address, notes
+  name, phone, email, address, latitude, longitude, notes
 `;
 
 @Injectable()
@@ -45,8 +49,8 @@ export class ProvidersRepository {
   async create(householdId: number, input: ProviderInput): Promise<Provider> {
     const [result] = await this.pool.query<ResultSetHeader>(
       `INSERT INTO providers
-        (household_id, type, custom_type_label, name, phone, email, address, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (household_id, type, custom_type_label, name, phone, email, address, latitude, longitude, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         householdId,
         input.type,
@@ -55,6 +59,8 @@ export class ProvidersRepository {
         input.phone ?? null,
         input.email ?? null,
         input.address ?? null,
+        input.latitude ?? null,
+        input.longitude ?? null,
         input.notes ?? null,
       ],
     );
@@ -88,6 +94,8 @@ export class ProvidersRepository {
       phone: 'phone',
       email: 'email',
       address: 'address',
+      latitude: 'latitude',
+      longitude: 'longitude',
       notes: 'notes',
     };
     const fields: string[] = [];

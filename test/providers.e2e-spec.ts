@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createTestApp, uniqueEmail } from './utils/test-app';
+import { activatePremium } from './utils/subscriptions';
 
 async function registerWithHousehold(
   app: INestApplication<App>,
@@ -117,5 +118,39 @@ describe('Providers (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ type: 'inconnu-type', name: 'X' })
       .expect(400);
+  });
+
+  it("bloque la carte des intervenants en gratuit, l'autorise en premium", async () => {
+    const { accessToken, householdId } = await registerWithHousehold(
+      app,
+      'provider-map',
+    );
+
+    await request(app.getHttpServer())
+      .post(`/households/${householdId}/providers`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        type: 'veto',
+        name: 'Dr Martin',
+        address: '1 rue de la Paix, Paris',
+      })
+      .expect(201);
+
+    const blocked = await request(app.getHttpServer())
+      .get(`/households/${householdId}/providers/map`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(403);
+    expect(blocked.body.errorCode).toBe('PLAN_LIMIT_PROVIDER_MAP');
+
+    await activatePremium(app, accessToken);
+
+    // Sans cle Google Maps configuree (cas des tests), le geocodage se desactive
+    // silencieusement : l'intervenant n'a pas de coordonnees, donc la carte est vide
+    // mais l'appel reussit (pas d'erreur bloquante).
+    const map = await request(app.getHttpServer())
+      .get(`/households/${householdId}/providers/map`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(map.body).toEqual([]);
   });
 });

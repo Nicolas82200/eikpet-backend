@@ -32,6 +32,9 @@ export interface AppConfig {
   revenuecat: {
     webhookSecret: string;
   };
+  googleMaps: {
+    apiKey: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -67,5 +70,8 @@ export default (): AppConfig => ({
   },
   revenuecat: {
     webhookSecret: process.env.REVENUECAT_WEBHOOK_SECRET ?? '',
+  },
+  googleMaps: {
+    apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
   },
 });
